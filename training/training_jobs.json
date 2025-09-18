@@ -1,0 +1,168 @@
+{
+  "jobs": {
+    "enterprise_crypto_price_linear_regression_20250917_091835": {
+      "job_id": "enterprise_crypto_price_linear_regression_20250917_091835",
+      "model_type": "linear_regression",
+      "model_name": "enterprise_crypto_price",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price",
+      "created_by": "Enterprise Demo",
+      "created_at": "2025-09-17T02:18:35.629551+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:18:35.632226+00:00",
+      "end_time": "2025-09-17T02:18:35.710554+00:00",
+      "model_id": "enterprise_crypto_price_LinearRegression_20250917_021835",
+      "error_message": null,
+      "metrics": {
+        "train": {
+          "mae": 36.705098927420444,
+          "rmse": 123.38531404814991,
+          "r2": 0.9999064110138705
+        },
+        "val": {
+          "mae": 50.247951063346996,
+          "rmse": 125.49543958565805,
+          "r2": 0.9999298408819558
+        },
+        "test": {
+          "mae": 23.434055364341837,
+          "rmse": 65.43030656266029,
+          "r2": 0.9999688156046453
+        }
+      }
+    },
+    "enterprise_crypto_price_change_linear_regression_20250917_091835": {
+      "job_id": "enterprise_crypto_price_change_linear_regression_20250917_091835",
+      "model_type": "linear_regression",
+      "model_name": "enterprise_crypto_price_change",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price_change",
+      "created_by": "Enterprise Demo",
+      "created_at": "2025-09-17T02:18:35.630575+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:18:36.712648+00:00",
+      "end_time": "2025-09-17T02:18:36.804251+00:00",
+      "model_id": "enterprise_crypto_price_change_LinearRegression_20250917_021836",
+      "error_message": null,
+      "metrics": {
+        "train": {
+          "mae": 0.006892554689096775,
+          "rmse": 0.011678848187544407,
+          "r2": 0.0009102336516489951
+        },
+        "val": {
+          "mae": 0.00530873676866352,
+          "rmse": 0.008319545863222356,
+          "r2": -0.002892527570437453
+        },
+        "test": {
+          "mae": 0.0028190474898092724,
+          "rmse": 0.0047991096832940726,
+          "r2": -0.00043741381599282647
+        }
+      }
+    },
+    "auto_crypto_btc_linear_regression_20250917_093926": {
+      "job_id": "auto_crypto_btc_linear_regression_20250917_093926",
+      "model_type": "linear_regression",
+      "model_name": "auto_crypto_btc",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price",
+      "created_by": "Auto Demo",
+      "created_at": "2025-09-17T02:39:26.621921+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:39:34.628504+00:00",
+      "end_time": "2025-09-17T02:39:34.708011+00:00",
+      "model_id": "auto_crypto_btc_LinearRegression_20250917_023934",
+      "error_message": null,
+      "metrics": {
+        "train": {
+          "mae": 36.705098927420444,
+          "rmse": 123.38531404814991,
+          "r2": 0.9999064110138705
+        },
+        "val": {
+          "mae": 50.247951063346996,
+          "rmse": 125.49543958565805,
+          "r2": 0.9999298408819558
+        },
+        "test": {
+          "mae": 23.434055364341837,
+          "rmse": 65.43030656266029,
+          "r2": 0.9999688156046453
+        }
+      }
+    },
+    "auto_crypto_eth_linear_regression_20250917_093928": {
+      "job_id": "auto_crypto_eth_linear_regression_20250917_093928",
+      "model_type": "linear_regression",
+      "model_name": "auto_crypto_eth",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price_change",
+      "created_by": "Auto Demo",
+      "created_at": "2025-09-17T02:39:28.623600+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:39:35.709540+00:00",
+      "end_time": "2025-09-17T02:39:35.783954+00:00",
+      "model_id": "auto_crypto_eth_LinearRegression_20250917_023935",
+      "error_message": null,
+      "metrics": {
+        "train": {
+          "mae": 0.006892554689096775,
+          "rmse": 0.011678848187544407,
+          "r2": 0.0009102336516489951
+        },
+        "val": {
+          "mae": 0.00530873676866352,
+          "rmse": 0.008319545863222356,
+          "r2": -0.002892527570437453
+        },
+        "test": {
+          "mae": 0.0028190474898092724,
+          "rmse": 0.0047991096832940726,
+          "r2": -0.00043741381599282647
+        }
+      }
+    },
+    "auto_knn_trend_knn_20250917_093930": {
+      "job_id": "auto_knn_trend_knn_20250917_093930",
+      "model_type": "knn",
+      "model_name": "auto_knn_trend",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price",
+      "created_by": "Auto Demo",
+      "created_at": "2025-09-17T02:39:30.625556+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:39:36.785198+00:00",
+      "end_time": "2025-09-17T02:42:22.157040+00:00",
+      "model_id": "knn_auto_knn_trend_knn_20250917_093930",
+      "error_message": null,
+      "metrics": {
+        "status": "completed"
+      }
+    },
+    "auto_cluster_analysis_kmeans_20250917_093932": {
+      "job_id": "auto_cluster_analysis_kmeans_20250917_093932",
+      "model_type": "kmeans",
+      "model_name": "auto_cluster_analysis",
+      "dataset_name": "ml_datasets_top3",
+      "hyperparameters": {},
+      "target_type": "price",
+      "created_by": "Auto Demo",
+      "created_at": "2025-09-17T02:39:32.626899+00:00",
+      "status": "completed",
+      "start_time": "2025-09-17T02:42:23.158609+00:00",
+      "end_time": "2025-09-17T02:42:41.208880+00:00",
+      "model_id": "kmeans_auto_cluster_analysis_kmeans_20250917_093932",
+      "error_message": null,
+      "metrics": {
+        "status": "completed"
+      }
+    }
+  }
+}

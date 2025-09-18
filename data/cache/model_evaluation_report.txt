@@ -1,0 +1,61 @@
+================================================================================
+CRYPTO ML MODELS EVALUATION REPORT
+================================================================================
+
+📋 MODELS TRAINED:
+  ✅ Linear Regression (Price & Price Change Prediction)
+  ✅ K-Means Clustering (Crypto Pattern Analysis)
+  ✅ K-Nearest Neighbors (Classification & Regression)
+
+📈 REGRESSION PERFORMANCE:
+
+🔹 Linear Regression:
+  Price Prediction:
+    • R² Score: -176693708.4977
+    • MAE: $87426040.50
+    • RMSE: $155747410.76
+  Price Change Prediction:
+    • R² Score: -2678775640963.2827
+    • MAE: 3304.565417
+    • RMSE: 7852.969016
+
+🔹 Knn:
+  Price Prediction:
+    • R² Score: 0.9964
+    • MAE: $271.99
+    • RMSE: $698.12
+  Price Change Prediction:
+    • R² Score: -0.1721
+    • MAE: 0.003332
+    • RMSE: 0.005195
+
+🎯 CLASSIFICATION PERFORMANCE:
+
+🔹 KNN Classification:
+  Trend Direction (Up/Down):
+    • Accuracy: 77.6%
+  Volatility Level (High/Low):
+    • Accuracy: 83.3%
+
+⚖️ MODEL COMPARISON:
+
+🏆 Best Price Prediction: Knn
+   R² = 0.9964
+🏆 Best Price Change Prediction: Knn
+   R² = -0.1721
+
+🔍 CLUSTERING ANALYSIS:
+  • Number of Clusters: 2
+  • Silhouette Score: 0.673
+  • Inertia: 38022.94
+
+💡 RECOMMENDATIONS:
+
+1. Use Knn for price prediction
+   (R² = 0.9964)
+2. Price change prediction shows expected low R² due to market noise
+3. Focus on price level prediction rather than returns prediction
+4. KNN shows good performance for volatility classification
+5. Trend prediction can be useful for trading signals
+
+================================================================================

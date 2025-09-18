@@ -1,0 +1,16 @@
+================================================================================
+CRYPTO ML PIPELINE EXECUTION REPORT
+================================================================================
+
+📅 Execution Date: 2025-09-17 00:33:29
+📊 Dataset: ml_datasets_top3
+🪙 Number of symbols: 3
+🎯 Configuration: Test run with top 3 symbols
+
+TRAINING RESULTS:
+----------------------------------------
+LINEAR_REGRESSION: ✅ SUCCESS (10.3s)
+KMEANS: ✅ SUCCESS (32.4s)
+KNN: ✅ SUCCESS (184.5s)
+
+================================================================================

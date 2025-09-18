@@ -1,0 +1,34 @@
+{
+  "model_type": "LinearRegression",
+  "target_type": "price",
+  "features": [
+    "close",
+    "high",
+    "open",
+    "low",
+    "ma_10",
+    "ma_50",
+    "volatility",
+    "hour",
+    "volume",
+    "returns"
+  ],
+  "metrics": {
+    "train": {
+      "mae": 36.705098927420444,
+      "rmse": 123.38531404814991,
+      "r2": 0.9999064110138705
+    },
+    "val": {
+      "mae": 50.247951063346996,
+      "rmse": 125.49543958565805,
+      "r2": 0.9999298408819558
+    },
+    "test": {
+      "mae": 23.434055364341837,
+      "rmse": 65.43030656266029,
+      "r2": 0.9999688156046453
+    }
+  },
+  "model_path": "E:\\Code on PC\\DoAnMLPython\\crypto-project\\models\\linreg_price.joblib"
+}

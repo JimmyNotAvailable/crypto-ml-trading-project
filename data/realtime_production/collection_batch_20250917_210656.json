@@ -1,0 +1,38 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "price_data": {
+      "symbol": "BTCUSDT",
+      "price_usd": 116150.01,
+      "price_vnd": 3044319638.1024,
+      "volume_24h": 12298.17174,
+      "change_24h_percent": 0.918,
+      "change_24h_usd": 1057.01,
+      "high_24h": 117286.73,
+      "low_24h": 114811.0,
+      "timestamp": "2025-09-17 14:06:55.895837",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "BTCUSDT",
+      "timestamp": "2025-09-17 14:06:55.895837",
+      "close": 116150.01,
+      "volume": 12298.17174,
+      "high": 117286.73,
+      "low": 114811.0,
+      "change_24h_percent": 0.918,
+      "price_vnd": 3044319638.1024,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 116599.44700000001,
+      "ma_50": 115897.90520000001,
+      "volatility": 0.23706814879578342,
+      "returns": 0.0368797143398103,
+      "price_change_1h": 0.036879714339820326,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:06:56.012851",
+    "status": "success"
+  }
+]

@@ -1,0 +1,6 @@
+pymongo
+requests
+scikit-learn
+numpy
+pandas
+flask

@@ -1,0 +1,110 @@
+[
+  {
+    "symbol": "ADAUSDT",
+    "price_data": {
+      "symbol": "ADAUSDT",
+      "price_usd": 0.87,
+      "price_vnd": 22802.9088,
+      "volume_24h": 84953590.9,
+      "change_24h_percent": 0.52,
+      "change_24h_usd": 0.0045,
+      "high_24h": 0.8872,
+      "low_24h": 0.8566,
+      "timestamp": "2025-09-17 14:01:25.977299",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "ADAUSDT",
+      "timestamp": "2025-09-17 14:01:25.977299",
+      "close": 0.87,
+      "volume": 84953590.9,
+      "high": 0.8872,
+      "low": 0.8566,
+      "change_24h_percent": 0.52,
+      "price_vnd": 22802.9088,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 0.87462,
+      "ma_50": 0.8693080000000001,
+      "volatility": 0.4226709953965093,
+      "returns": -0.0689179875947632,
+      "price_change_1h": -0.06891798759476739,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:01:26.086822",
+    "status": "success"
+  },
+  {
+    "symbol": "MATICUSDT",
+    "price_data": {
+      "symbol": "MATICUSDT",
+      "price_usd": 0.3794,
+      "price_vnd": 9944.165056000002,
+      "volume_24h": 2834467.3,
+      "change_24h_percent": -0.289,
+      "change_24h_usd": -0.0011,
+      "high_24h": 0.3806,
+      "low_24h": 0.3774,
+      "timestamp": "2025-09-17 14:01:26.395086",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "MATICUSDT",
+      "timestamp": "2025-09-17 14:01:26.395086",
+      "close": 0.3794,
+      "volume": 2834467.3,
+      "high": 0.3806,
+      "low": 0.3774,
+      "change_24h_percent": -0.289,
+      "price_vnd": 9944.165056000002,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 0.38177,
+      "ma_50": 0.37573,
+      "volatility": 0.6386091489401996,
+      "returns": 0.026364355391517158,
+      "price_change_1h": 0.026364355391507773,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:01:26.502080",
+    "status": "success"
+  },
+  {
+    "symbol": "SOLUSDT",
+    "price_data": {
+      "symbol": "SOLUSDT",
+      "price_usd": 235.31,
+      "price_vnd": 6167531.5744,
+      "volume_24h": 3318468.161,
+      "change_24h_percent": 1.078,
+      "change_24h_usd": 2.51,
+      "high_24h": 240.95,
+      "low_24h": 231.26,
+      "timestamp": "2025-09-17 14:01:26.803807",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "SOLUSDT",
+      "timestamp": "2025-09-17 14:01:26.803807",
+      "close": 235.31,
+      "volume": 3318468.161,
+      "high": 240.95,
+      "low": 231.26,
+      "change_24h_percent": 1.078,
+      "price_vnd": 6167531.5744,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 235.38299999999998,
+      "ma_50": 235.3222,
+      "volatility": 0.5031483710387409,
+      "returns": -0.06794632240529896,
+      "price_change_1h": -0.06794632240529837,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:01:26.911435",
+    "status": "success"
+  }
+]

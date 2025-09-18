@@ -1,0 +1,79 @@
+{
+  "model_type": "KNN",
+  "features": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "ma_10",
+    "ma_50",
+    "volatility",
+    "returns",
+    "hour"
+  ],
+  "classifier": {
+    "trend_params": {
+      "metric": "manhattan",
+      "n_neighbors": 21,
+      "weights": "distance"
+    },
+    "vol_params": {
+      "metric": "euclidean",
+      "n_neighbors": 3,
+      "weights": "distance"
+    },
+    "trend_metrics": {
+      "val_accuracy": 0.8349764965264778,
+      "val_precision": 0.8394741984908106,
+      "val_recall": 0.8349764965264778,
+      "val_f1": 0.8345230317415426,
+      "test_accuracy": 0.7755823627287853,
+      "test_precision": 0.7954744446291706,
+      "test_recall": 0.7755823627287853,
+      "test_f1": 0.7721795530774358
+    },
+    "vol_metrics": {
+      "val_accuracy": 0.9472523815466534,
+      "val_precision": 0.9478274211798025,
+      "val_recall": 0.9472523815466534,
+      "val_f1": 0.9474536587938319,
+      "test_accuracy": 0.8509567387687188,
+      "test_precision": 0.8718880934386605,
+      "test_recall": 0.8509567387687188,
+      "test_f1": 0.8476004980752285
+    }
+  },
+  "regressor": {
+    "price_params": {
+      "metric": "manhattan",
+      "n_neighbors": 3,
+      "weights": "distance"
+    },
+    "change_params": {
+      "metric": "manhattan",
+      "n_neighbors": 21,
+      "weights": "uniform"
+    },
+    "price_metrics": {
+      "val_mae": 267.0817243130081,
+      "val_rmse": 674.1443054598313,
+      "val_r2": 0.9979754245169657,
+      "test_mae": 271.9856105170974,
+      "test_rmse": 698.1242506834169,
+      "test_r2": 0.9964498650161896
+    },
+    "change_metrics": {
+      "val_mae": 0.0056101575442865405,
+      "val_rmse": 0.00856334019873906,
+      "val_r2": -0.06253085502579903,
+      "test_mae": 0.0033321930551153543,
+      "test_rmse": 0.005194656942186827,
+      "test_r2": -0.17214763832600144
+    }
+  },
+  "model_paths": {
+    "classifier": "E:\\Code on PC\\DoAnMLPython\\crypto-project\\models\\knn_crypto_classifier.joblib",
+    "regressor": "E:\\Code on PC\\DoAnMLPython\\crypto-project\\models\\knn_crypto_regressor.joblib"
+  }
+}

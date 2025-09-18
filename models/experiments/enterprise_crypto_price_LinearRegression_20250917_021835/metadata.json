@@ -1,0 +1,55 @@
+{
+  "model_id": "enterprise_crypto_price_LinearRegression_20250917_021835",
+  "model_name": "enterprise_crypto_price",
+  "model_type": "LinearRegression",
+  "version": "v1.0",
+  "timestamp": "2025-09-17T02:18:35.702168+00:00",
+  "dataset_version": "ml_datasets_top3",
+  "dataset_hash": "6d42a1485b9bab10",
+  "feature_cols": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "ma_10",
+    "ma_50",
+    "volatility",
+    "returns",
+    "hour"
+  ],
+  "target_type": "price",
+  "training_samples": 112182,
+  "validation_samples": 24039,
+  "test_samples": 24040,
+  "train_metrics": {
+    "mae": 36.705098927420444,
+    "rmse": 123.38531404814991,
+    "r2": 0.9999064110138705
+  },
+  "validation_metrics": {
+    "mae": 50.247951063346996,
+    "rmse": 125.49543958565805,
+    "r2": 0.9999298408819558
+  },
+  "test_metrics": {
+    "mae": 23.434055364341837,
+    "rmse": 65.43030656266029,
+    "r2": 0.9999688156046453
+  },
+  "hyperparameters": {},
+  "python_version": "3.13.2 (tags/v3.13.2:4f8bb39, Feb  4 2025, 15:23:48) [MSC v.1942 64 bit (AMD64)]",
+  "sklearn_version": "1.7.2",
+  "dependencies": {
+    "python_version": "3.13.2 (tags/v3.13.2:4f8bb39, Feb  4 2025, 15:23:48) [MSC v.1942 64 bit (AMD64)]",
+    "sklearn_version": "1.7.2",
+    "pandas_version": "2.3.2",
+    "numpy_version": "2.3.3"
+  },
+  "status": "training",
+  "created_by": "Enterprise Demo",
+  "deployment_date": null,
+  "retirement_date": null,
+  "business_impact": null,
+  "a_b_test_results": null
+}

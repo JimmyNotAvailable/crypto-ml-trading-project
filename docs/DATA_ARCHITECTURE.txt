@@ -1,0 +1,166 @@
+📊 KIẾN TRÚC DỮ LIỆU CHO DỰ ÁN CRYPTO BOT
+=============================================
+
+PHÂN LOẠI DỮ LIỆU:
+==================
+
+1. 📚 HISTORICAL DATA (Đã có)
+   • Mục đích: Training + Testing ML models
+   • Vị trí: /data/cache/ml_datasets_top3.pkl
+   • Đặc điểm: Đã làm sạch hoàn toàn
+   • Sử dụng: Một lần để train models
+
+2. 📡 REALTIME DATA (Cần làm)
+   • Mục đích: Bot responses + Web dashboard
+   • Nguồn: API Binance/CoinGecko
+   • Đặc điểm: Cần xử lý realtime
+   • Sử dụng: Liên tục cho user queries
+
+3. 💾 PROCESSED REALTIME (Cần làm)
+   • Mục đích: ML prediction trên dữ liệu mới
+   • Nguồn: Realtime data sau khi xử lý
+   • Đặc điểm: Cùng format với training data
+   • Sử dụng: Input cho ML models
+
+QUY TRÌNH XỬ LÝ:
+================
+
+REALTIME DATA PIPELINE:
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   API Call      │ -> │  Data Cleaning  │ -> │  Feature Eng.   │
+│ (Raw JSON)      │    │ (Validation)    │    │ (MA, Returns)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         v                       v                       v
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Bot Response  │    │   MongoDB       │    │  ML Prediction  │
+│   (!gia BTC)    │    │   Storage       │    │ (Smart Pipeline)│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+
+CHI TIẾT XỬ LÝ REALTIME:
+========================
+
+BƯỚC 1: RAW DATA COLLECTION
+----------------------------
+def collect_realtime_price(symbol):
+    """Thu thập giá realtime từ API"""
+    response = api.get_price(symbol)
+    return {
+        'symbol': symbol,
+        'price': response['price'],
+        'volume': response['volume'],
+        'timestamp': datetime.now(),
+        'change_24h': response['change_24h']
+    }
+
+BƯỚC 2: DATA VALIDATION
+-----------------------
+def validate_price_data(data):
+    """Kiểm tra tính hợp lệ của dữ liệu"""
+    if data['price'] <= 0:
+        raise ValueError("Giá không thể âm")
+    if data['price'] > 1000000:  # Bitcoin max price check
+        raise ValueError("Giá quá cao, có thể lỗi")
+    if pd.isna(data['price']):
+        raise ValueError("Missing price data")
+    return True
+
+BƯỚC 3: FEATURE ENGINEERING
+---------------------------
+def prepare_for_prediction(current_data, historical_window=50):
+    """Chuẩn bị dữ liệu cho ML prediction"""
+    # Lấy 50 điểm dữ liệu gần nhất từ MongoDB
+    recent_data = get_recent_prices(symbol, limit=historical_window)
+    
+    # Tính các chỉ báo kỹ thuật
+    features = {
+        'price': current_data['price'],
+        'ma_10': calculate_ma(recent_data, 10),
+        'ma_50': calculate_ma(recent_data, 50),
+        'volatility': calculate_volatility(recent_data),
+        'returns': calculate_returns(recent_data),
+        'volume': current_data['volume']
+    }
+    
+    # Chuẩn hóa với scaler đã train
+    scaler = load_scaler_from_training()
+    features_scaled = scaler.transform([list(features.values())])
+    
+    return features_scaled
+
+BƯỚC 4: ML PREDICTION
+---------------------
+def predict_price_trend(symbol):
+    """Dự đoán xu hướng giá"""
+    # Thu thập dữ liệu mới
+    current_data = collect_realtime_price(symbol)
+    
+    # Chuẩn bị features
+    features = prepare_for_prediction(current_data)
+    
+    # Load model đã train
+    model = load_best_model_for(symbol)
+    
+    # Prediction
+    prediction = model.predict(features)
+    confidence = model.predict_proba(features) if hasattr(model, 'predict_proba') else 0.5
+    
+    return {
+        'symbol': symbol,
+        'current_price': current_data['price'],
+        'predicted_trend': prediction[0],
+        'confidence': confidence,
+        'timestamp': datetime.now()
+    }
+
+SO SÁNH VỚI TRAINING DATA:
+=========================
+
+TRAINING DATA PROCESSING:
+• Làm sạch sâu: loại bỏ outliers, interpolate missing
+• Feature engineering: tạo tất cả features một lần
+• Split data: train/val/test theo thời gian
+• Normalization: fit scaler trên train set
+
+REALTIME DATA PROCESSING:
+• Validation nhẹ: kiểm tra format và giới hạn hợp lý
+• Feature engineering: tính toán realtime với window data
+• No splitting: chỉ có 1 điểm dữ liệu mới
+• Normalization: transform với scaler đã fit
+
+LỢI ÍCH:
+========
+
+✅ TÁCH BIỆT RÕ RÀNG:
+- Training data: Tối ưu cho accuracy
+- Realtime data: Tối ưu cho speed
+
+✅ CONSISTENCY:
+- Cùng feature engineering pipeline
+- Cùng scaler và preprocessing
+
+✅ SCALABILITY:
+- Realtime processing nhanh
+- Có thể handle nhiều symbols
+
+✅ RELIABILITY:
+- Validation đảm bảo data quality
+- Error handling cho API failures
+
+KẾT LUẬN:
+=========
+
+DỮ LIỆU HISTORICAL: 
+- Đã xong, không cần động vào
+- Chỉ dùng để train models
+
+DỮ LIỆU REALTIME:
+- Cần thu thập từ API
+- Cần xử lý nhẹ cho consistency
+- Dùng cho bot responses và predictions
+
+NEXT STEPS:
+- Implement realtime data collector
+- Setup MongoDB cho storage
+- Tạo feature engineering pipeline cho realtime
+- Integrate với existing ML models

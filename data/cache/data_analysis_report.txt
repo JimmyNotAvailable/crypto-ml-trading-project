@@ -1,0 +1,19 @@
+CRYPTO DATA ANALYSIS REPORT
+==================================================
+
+Generated: 2025-09-16 23:20:11.923131
+Dataset size: 1,120,061 rows, 16 columns
+Date range: 2017-08-17 04:00:00 to 2023-10-19 23:00:00
+Cryptocurrencies: 32
+
+Top correlations:
+  high - close: 1.0000
+  open - high: 1.0000
+  low - close: 1.0000
+  open - low: 1.0000
+  open - close: 1.0000
+  high - low: 1.0000
+  open - ma_10: 0.9999
+  high - ma_10: 0.9999
+  close - ma_10: 0.9999
+  low - ma_10: 0.9999

@@ -1,0 +1,74 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "price_data": {
+      "symbol": "BTCUSDT",
+      "price_usd": 116041.27,
+      "price_vnd": 3041469536.6048,
+      "volume_24h": 12298.57358,
+      "change_24h_percent": 0.715,
+      "change_24h_usd": 823.55,
+      "high_24h": 117286.73,
+      "low_24h": 114811.0,
+      "timestamp": "2025-09-17 14:02:41.878953",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "BTCUSDT",
+      "timestamp": "2025-09-17 14:02:41.878953",
+      "close": 116041.27,
+      "volume": 12298.57358,
+      "high": 117286.73,
+      "low": 114811.0,
+      "change_24h_percent": 0.715,
+      "price_vnd": 3041469536.6048,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 116588.57300000002,
+      "ma_50": 115895.73040000001,
+      "volatility": 0.23773687685518505,
+      "returns": -0.056775123056551635,
+      "price_change_1h": -0.05677512305654649,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:02:41.995011",
+    "status": "success"
+  },
+  {
+    "symbol": "ETHUSDT",
+    "price_data": {
+      "symbol": "ETHUSDT",
+      "price_usd": 4493.87,
+      "price_vnd": 117785411.2288,
+      "volume_24h": 316251.2236,
+      "change_24h_percent": 0.714,
+      "change_24h_usd": 31.85,
+      "high_24h": 4557.67,
+      "low_24h": 4424.0,
+      "timestamp": "2025-09-17 14:02:42.335031",
+      "source": "binance",
+      "usd_vnd_rate": 26210.24
+    },
+    "ml_features": {
+      "symbol": "ETHUSDT",
+      "timestamp": "2025-09-17 14:02:42.335031",
+      "close": 4493.87,
+      "volume": 316251.2236,
+      "high": 4557.67,
+      "low": 4424.0,
+      "change_24h_percent": 0.714,
+      "price_vnd": 117785411.2288,
+      "usd_vnd_rate": 26210.24,
+      "ma_10": 4507.844,
+      "ma_50": 4504.0238,
+      "volatility": 0.41436441318791084,
+      "returns": -0.046263859695949705,
+      "price_change_1h": -0.046263859695946964,
+      "hour": 21
+    },
+    "klines_count": 100,
+    "collection_timestamp": "2025-09-17 14:02:42.450557",
+    "status": "success"
+  }
+]

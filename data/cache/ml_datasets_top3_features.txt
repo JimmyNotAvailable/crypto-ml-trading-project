@@ -1,0 +1,18 @@
+ML Dataset Features:
+===================
+
+1. open
+2. high
+3. low
+4. close
+5. volume
+6. ma_10
+7. ma_50
+8. volatility
+9. returns
+10. hour
+
+Dataset sizes:
+Train: 112182
+Val: 24039
+Test: 24040
