@@ -1,5 +1,25 @@
 version: '3.8'
 services:
+  # 🚀 UNIFIED SERVICE - Single container running both bot and web
+  unified:
+    build: .
+    container_name: crypto_unified
+    env_file:
+      - .env.example
+    environment:
+      - SERVICE=unified
+      - WEB_PORT=${WEB_PORT:-8000}
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./:/app
+      - ./token.txt:/app/token.txt:ro  # Mount bot token file
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  # 🔧 LEGACY SERVICES (for individual testing)
   web:
     build: .
     container_name: crypto_web
@@ -14,6 +34,7 @@ services:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
       - mongo
+    profiles: ["legacy"]
 
   bot:
     build: .
@@ -25,8 +46,10 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
     volumes:
       - ./:/app
+      - ./token.txt:/app/token.txt:ro
     depends_on:
       - mongo
+    profiles: ["legacy"]
 
   demo:
     build: .
@@ -40,10 +63,12 @@ services:
       - DASHBOARD=1
     volumes:
       - ./:/app
+      - ./token.txt:/app/token.txt:ro
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
       - mongo
+    profiles: ["legacy"]
 
   mongo:
     image: mongo:latest
