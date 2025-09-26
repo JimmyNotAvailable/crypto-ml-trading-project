@@ -75,6 +75,24 @@ class PipelineMLNangCao:
             'ket_qua_registry': ket_qua_registry,
             'ket_qua_trien_khai': ket_qua_trien_khai
         }
+
+    def _quan_ly_phien_ban_mo_hinh(self):
+        """Placeholder quản lý phiên bản mô hình (stub)."""
+        try:
+            # In a real scenario, we'd register models to a registry
+            return {'status': 'skipped', 'reason': 'demo only'}
+        except Exception as e:
+            print(f"❌ Lỗi quản lý phiên bản mô hình: {e}")
+            return {'status': 'error', 'error': str(e)}
+
+    def _mo_phong_trien_khai_production(self, datasets):
+        """Placeholder mô phỏng triển khai production (stub)."""
+        try:
+            # Return a tiny health-check result
+            return {'deployed': False, 'notes': 'demo only'}
+        except Exception as e:
+            print(f"❌ Lỗi mô phỏng triển khai: {e}")
+            return {'deployed': False, 'error': str(e)}
     
     def _tai_va_kiem_tra_du_lieu(self, ten_dataset):
         """Tải và kiểm tra chất lượng dữ liệu"""
@@ -165,15 +183,16 @@ class PipelineMLNangCao:
                     ket_qua_huan_luyen = mo_hinh.train(datasets)
                     ket_qua[ten] = ket_qua_huan_luyen
                     
-                    # In kết quả ngay
-                    if 'r2' in ket_qua_huan_luyen['test_metrics']:
-                        r2 = ket_qua_huan_luyen['test_metrics']['r2']
-                        mae = ket_qua_huan_luyen['test_metrics']['mae']
-                        print(f"      ✅ R²: {r2:.4f}, MAE: ${mae:.2f}")
-                    elif 'accuracy' in ket_qua_huan_luyen['test_metrics']:
-                        acc = ket_qua_huan_luyen['test_metrics']['accuracy']
-                        prec = ket_qua_huan_luyen['test_metrics']['precision']
-                        print(f"      ✅ Accuracy: {acc:.3f}, Precision: {prec:.3f}")
+                    # In kết quả ngay theo schema metrics chuẩn hóa
+                    metrics = ket_qua_huan_luyen.get('metrics', {}) if isinstance(ket_qua_huan_luyen, dict) else {}
+                    if 'test_r2' in metrics or 'train_r2' in metrics:
+                        r2 = metrics.get('test_r2', metrics.get('train_r2', 0.0))
+                        mae = metrics.get('test_mae', metrics.get('train_mae', 0.0))
+                        print(f"      ✅ R²: {float(r2):.4f}, MAE: ${float(mae):.2f}")
+                    elif 'test_accuracy' in metrics or 'train_accuracy' in metrics:
+                        acc = metrics.get('test_accuracy', metrics.get('train_accuracy', 0.0))
+                        prec = metrics.get('test_precision_macro', metrics.get('train_precision_macro', 0.0))
+                        print(f"      ✅ Accuracy: {float(acc):.3f}, Precision: {float(prec):.3f}")
                         
                 except Exception as e:
                     print(f"      ❌ Thất bại: {e}")
@@ -188,26 +207,30 @@ class PipelineMLNangCao:
             mo_hinh_hoi_quy = {k: v for k, v in ket_qua.items() 
                               if any(x in k.lower() for x in ['hoi_quy', 'regression'])}
             if mo_hinh_hoi_quy:
-                mo_hinh_hoi_quy_tot_nhat = max(mo_hinh_hoi_quy.keys(), 
-                                              key=lambda x: mo_hinh_hoi_quy[x]['test_metrics']['r2'])
+                def get_r2(res: dict) -> float:
+                    m = res.get('metrics', {}) if isinstance(res, dict) else {}
+                    return float(m.get('test_r2', m.get('train_r2', 0.0)))
+                mo_hinh_hoi_quy_tot_nhat = max(mo_hinh_hoi_quy.keys(), key=lambda x: get_r2(mo_hinh_hoi_quy[x]))
                 mo_hinh_tot_nhat['hoi_quy'] = {
                     'ten': mo_hinh_hoi_quy_tot_nhat,
-                    'chi_so': mo_hinh_hoi_quy[mo_hinh_hoi_quy_tot_nhat]['test_metrics']
+                    'chi_so': (mo_hinh_hoi_quy[mo_hinh_hoi_quy_tot_nhat].get('metrics', {}) if isinstance(mo_hinh_hoi_quy[mo_hinh_hoi_quy_tot_nhat], dict) else {})
                 }
-                r2_score = mo_hinh_hoi_quy[mo_hinh_hoi_quy_tot_nhat]['test_metrics']['r2']
+                r2_score = get_r2(mo_hinh_hoi_quy[mo_hinh_hoi_quy_tot_nhat])
                 print(f"   🏆 Hồi quy tốt nhất: {mo_hinh_hoi_quy_tot_nhat} (R² = {r2_score:.4f})")
             
             # Mô hình phân loại tốt nhất
             mo_hinh_phan_loai = {k: v for k, v in ket_qua.items() 
                                 if 'phan_loai' in k.lower() or 'classifier' in k.lower()}
             if mo_hinh_phan_loai:
-                mo_hinh_phan_loai_tot_nhat = max(mo_hinh_phan_loai.keys(), 
-                                               key=lambda x: mo_hinh_phan_loai[x]['test_metrics']['accuracy'])
+                def get_acc(res: dict) -> float:
+                    m = res.get('metrics', {}) if isinstance(res, dict) else {}
+                    return float(m.get('test_accuracy', m.get('train_accuracy', 0.0)))
+                mo_hinh_phan_loai_tot_nhat = max(mo_hinh_phan_loai.keys(), key=lambda x: get_acc(mo_hinh_phan_loai[x]))
                 mo_hinh_tot_nhat['phan_loai'] = {
                     'ten': mo_hinh_phan_loai_tot_nhat,
-                    'chi_so': mo_hinh_phan_loai[mo_hinh_phan_loai_tot_nhat]['test_metrics']
+                    'chi_so': (mo_hinh_phan_loai[mo_hinh_phan_loai_tot_nhat].get('metrics', {}) if isinstance(mo_hinh_phan_loai[mo_hinh_phan_loai_tot_nhat], dict) else {})
                 }
-                acc_score = mo_hinh_phan_loai[mo_hinh_phan_loai_tot_nhat]['test_metrics']['accuracy']
+                acc_score = get_acc(mo_hinh_phan_loai[mo_hinh_phan_loai_tot_nhat])
                 print(f"   🏆 Phân loại tốt nhất: {mo_hinh_phan_loai_tot_nhat} (Accuracy = {acc_score:.3f})")
             
             self.ket_qua['lua_chon_tu_dong'] = ket_qua
@@ -235,10 +258,11 @@ class PipelineMLNangCao:
                 'tham_so_tot_nhat': getattr(knn_regressor, 'best_params', None)
             }
             
+            metrics_knn = ket_qua_knn.get('metrics', {}) if isinstance(ket_qua_knn, dict) else {}
             print(f"   ✅ KNN Hồi quy đã tối ưu:")
             print(f"      🎯 K tối ưu: {knn_regressor.n_neighbors}")
-            print(f"      📊 Điểm R²: {ket_qua_knn['test_metrics']['r2']:.4f}")
-            print(f"      💰 MAE: ${ket_qua_knn['test_metrics']['mae']:.2f}")
+            print(f"      📊 Điểm R²: {float(metrics_knn.get('test_r2', metrics_knn.get('train_r2', 0.0))):.4f}")
+            print(f"      💰 MAE: ${float(metrics_knn.get('test_mae', metrics_knn.get('train_mae', 0.0))):.2f}")
             
             # Giải thích tại sao chọn K này
             k_value = knn_regressor.n_neighbors
@@ -260,10 +284,11 @@ class PipelineMLNangCao:
                 'tham_so_tot_nhat': getattr(knn_classifier, 'best_params', None)
             }
             
+            metrics_clf = ket_qua_clf.get('metrics', {}) if isinstance(ket_qua_clf, dict) else {}
             print(f"   ✅ KNN Phân loại đã tối ưu:")
             print(f"      🎯 K tối ưu: {knn_classifier.n_neighbors}")
-            print(f"      📊 Accuracy: {ket_qua_clf['test_metrics']['accuracy']:.3f}")
-            print(f"      📈 Precision: {ket_qua_clf['test_metrics']['precision']:.3f}")
+            print(f"      📊 Accuracy: {float(metrics_clf.get('test_accuracy', metrics_clf.get('train_accuracy', 0.0))):.3f}")
+            print(f"      📈 Precision: {float(metrics_clf.get('test_precision_macro', metrics_clf.get('train_precision_macro', 0.0))):.3f}")
             
             # Tối ưu K-Means
             print("   🎯 Tối ưu hóa K-Means Clustering...")

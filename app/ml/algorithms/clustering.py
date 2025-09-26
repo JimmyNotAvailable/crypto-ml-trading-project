@@ -17,6 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+import matplotlib.figure as mfig
 import seaborn as sns
 from typing import Dict, Any, Optional, Tuple
 import warnings
@@ -35,7 +36,7 @@ class KMeansClusteringModel(BaseModel):
     - Visualization tools
     """
     
-    def __init__(self, n_clusters: int = None, auto_tune: bool = True, max_clusters: int = 10):
+    def __init__(self, n_clusters: Optional[int] = None, auto_tune: bool = True, max_clusters: int = 10):
         """
         Initialize KMeans Clustering model
         
@@ -58,12 +59,10 @@ class KMeansClusteringModel(BaseModel):
         self.labels_ = None
         
         # Update metadata
-        self.metadata.update({
-            'n_clusters': n_clusters,
-            'auto_tune': auto_tune,
-            'max_clusters': max_clusters,
-            'algorithm': 'KMeans'
-        })
+        self.metadata['n_clusters'] = str(n_clusters) if n_clusters else "auto"
+        self.metadata['auto_tune'] = str(auto_tune)
+        self.metadata['max_clusters'] = str(max_clusters)
+        self.metadata['algorithm'] = 'KMeans'
     
     def _prepare_features(self, datasets: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         """
@@ -227,20 +226,20 @@ class KMeansClusteringModel(BaseModel):
         
         # Update model state
         self.is_trained = True
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
         self.training_history = {
             'timestamp': pd.Timestamp.now().isoformat(),
-            'n_features': len(self.feature_columns),
+            'n_features': feature_count,
             'n_samples': len(X),
             'metrics': train_metrics
         }
         
         # Update metadata
-        self.metadata.update({
-            'training_samples': len(X),
-            'feature_count': len(self.feature_columns),
-            'final_n_clusters': self.n_clusters,
-            'last_trained': pd.Timestamp.now().isoformat()
-        })
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        self.metadata['training_samples'] = str(len(X))
+        self.metadata['feature_count'] = str(feature_count)
+        self.metadata['final_n_clusters'] = str(self.n_clusters) if self.n_clusters else "unknown"
+        self.metadata['last_trained'] = pd.Timestamp.now().isoformat()
         
         # Print results
         print(f"✅ Clustering completed!")
@@ -268,7 +267,8 @@ class KMeansClusteringModel(BaseModel):
         X_with_clusters = X.copy()
         X_with_clusters['cluster'] = labels
         
-        for cluster_id in range(self.n_clusters):
+        n_clusters = self.n_clusters or 3  # Fallback to 3 if None
+        for cluster_id in range(n_clusters):
             cluster_data = X_with_clusters[X_with_clusters['cluster'] == cluster_id]
             cluster_stats[cluster_id] = {
                 'size': len(cluster_data),
@@ -334,8 +334,8 @@ class KMeansClusteringModel(BaseModel):
         calinski_harabasz = calinski_harabasz_score(X_scaled, cluster_labels)
         
         return {
-            'silhouette_score': silhouette_avg,
-            'calinski_harabasz_score': calinski_harabasz,
+            'silhouette_score': float(silhouette_avg),
+            'calinski_harabasz_score': float(calinski_harabasz),
             'n_clusters': len(np.unique(cluster_labels))
         }
     
@@ -352,15 +352,16 @@ class KMeansClusteringModel(BaseModel):
         # Inverse transform cluster centers to original scale
         centers_original = self.scaler.inverse_transform(self.cluster_centers_)
         
+        n_clusters = self.n_clusters or 3  # Fallback
         centers_df = pd.DataFrame(
             centers_original,
             columns=self.feature_columns,
-            index=[f'Cluster_{i}' for i in range(self.n_clusters)]
+            index=[f'Cluster_{i}' for i in range(n_clusters)]
         )
         
         return centers_df
     
-    def plot_clusters_2d(self, X: pd.DataFrame, use_pca: bool = True) -> plt.Figure:
+    def plot_clusters_2d(self, X: pd.DataFrame, use_pca: bool = True) -> mfig.Figure:
         """
         📊 Plot clusters in 2D space
         
@@ -390,14 +391,21 @@ class KMeansClusteringModel(BaseModel):
         if use_pca or X_scaled.shape[1] > 2:
             pca = PCA(n_components=2)
             X_2d = pca.fit_transform(X_scaled)
-            centers_2d = pca.transform(self.cluster_centers_)
+            if self.cluster_centers_ is not None:
+                centers_2d = pca.transform(self.cluster_centers_)
+            else:
+                centers_2d = None
             xlabel = f'PC1 ({pca.explained_variance_ratio_[0]:.2%} variance)'
             ylabel = f'PC2 ({pca.explained_variance_ratio_[1]:.2%} variance)'
         else:
             X_2d = X_scaled[:, :2]
-            centers_2d = self.cluster_centers_[:, :2]
+            if self.cluster_centers_ is not None:
+                centers_2d = self.cluster_centers_[:, :2]
+            else:
+                centers_2d = None
             xlabel = self.feature_columns[0] if self.feature_columns else 'Feature 1'
-            ylabel = self.feature_columns[1] if len(self.feature_columns) > 1 else 'Feature 2'
+            ylabel = (self.feature_columns[1] if self.feature_columns and len(self.feature_columns) > 1 
+                     else 'Feature 2')
         
         # Create plot
         fig, ax = plt.subplots(figsize=(12, 8))
@@ -411,15 +419,16 @@ class KMeansClusteringModel(BaseModel):
             s=50
         )
         
-        # Plot cluster centers
-        ax.scatter(
-            centers_2d[:, 0], centers_2d[:, 1],
-            c='red',
-            marker='x',
-            s=200,
-            linewidths=3,
-            label='Centroids'
-        )
+        # Plot cluster centers if available
+        if centers_2d is not None:
+            ax.scatter(
+                centers_2d[:, 0], centers_2d[:, 1],
+                c='red',
+                marker='x',
+                s=200,
+                linewidths=3,
+                label='Centroids'
+            )
         
         # Customize plot
         ax.set_xlabel(xlabel)
@@ -434,7 +443,7 @@ class KMeansClusteringModel(BaseModel):
         plt.tight_layout()
         return fig
     
-    def plot_cluster_evaluation(self) -> plt.Figure:
+    def plot_cluster_evaluation(self) -> mfig.Figure:
         """
         📊 Plot cluster evaluation metrics
         

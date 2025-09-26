@@ -22,7 +22,7 @@ class CryptoMongoClient:
     - Supports all 34 coins
     """
     
-    def __init__(self, connection_string: str = None, db_name: str = "crypto"):
+    def __init__(self, connection_string: Optional[str] = None, db_name: str = "crypto"):
         """
         Initialize MongoDB client với production settings
         
@@ -33,8 +33,8 @@ class CryptoMongoClient:
         # Default to local MongoDB
         self.connection_string = connection_string or "mongodb://localhost:27017/"
         self.db_name = db_name
-        self.client = None
-        self.db = None
+        self.client: Optional[MongoClient] = None
+        self.db: Optional[Any] = None
         
         # Production settings
         self.max_pool_size = 100
@@ -70,6 +70,9 @@ class CryptoMongoClient:
     def _setup_collections(self):
         """Tạo collections và indexes optimized cho crypto data"""
         try:
+            if not self.db:
+                raise Exception("Database not connected")
+                
             # Collection cho realtime prices
             prices_collection = self.db.realtime_prices
             
@@ -114,6 +117,10 @@ class CryptoMongoClient:
             bool: Success status
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return False
+                
             collection = self.db.realtime_prices
             
             # Thêm metadata
@@ -146,6 +153,10 @@ class CryptoMongoClient:
             bool: Success status
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available") 
+                return False
+                
             collection = self.db.realtime_prices
             
             # Prepare bulk operations
@@ -189,6 +200,10 @@ class CryptoMongoClient:
             bool: Success status
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return False
+                
             collection = self.db.ohlcv_data
             
             # Prepare data với metadata
@@ -230,6 +245,10 @@ class CryptoMongoClient:
             bool: Success status
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return False
+                
             collection = self.db.ml_features
             
             features_data.update({
@@ -254,7 +273,7 @@ class CryptoMongoClient:
             logger.error(f"❌ Error saving ML features: {e}")
             return False
     
-    def get_latest_prices(self, symbols: List[str] = None) -> List[Dict]:
+    def get_latest_prices(self, symbols: Optional[List[str]] = None) -> List[Dict]:
         """
         Lấy latest prices cho symbols
         
@@ -265,6 +284,10 @@ class CryptoMongoClient:
             List of price records
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return []
+                
             collection = self.db.realtime_prices
             
             query = {}
@@ -290,6 +313,10 @@ class CryptoMongoClient:
             List of historical records
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return []
+                
             collection = self.db.ohlcv_data
             
             since = datetime.utcnow() - timedelta(hours=hours)
@@ -313,6 +340,10 @@ class CryptoMongoClient:
             days: Số ngày giữ lại
         """
         try:
+            if not self.db:
+                logger.error("Database connection not available")
+                return
+                
             cutoff = datetime.utcnow() - timedelta(days=days)
             
             # Cleanup old OHLCV data
@@ -328,6 +359,12 @@ class CryptoMongoClient:
     def get_connection_info(self) -> Dict[str, Any]:
         """Get MongoDB connection info"""
         try:
+            if not self.client or not self.db:
+                return {
+                    "connected": False,
+                    "error": "No database connection"
+                }
+                
             server_info = self.client.server_info()
             return {
                 "connected": True,

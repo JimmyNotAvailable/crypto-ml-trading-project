@@ -1,18 +1,53 @@
 version: '3.8'
 services:
-  app:
+  web:
     build: .
+    container_name: crypto_web
     env_file:
       - .env.example
+    environment:
+      - SERVICE=web
+      - WEB_PORT=${WEB_PORT:-8000}
     volumes:
-      - ./app:/app
-      - ./data:/data
+      - ./:/app
     ports:
-      - "8000:8000"
+      - "${WEB_PORT:-8000}:8000"
     depends_on:
       - mongo
+
+  bot:
+    build: .
+    container_name: crypto_bot
+    env_file:
+      - .env.example
+    environment:
+      - SERVICE=bot
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./:/app
+    depends_on:
+      - mongo
+
+  demo:
+    build: .
+    container_name: crypto_demo
+    env_file:
+      - .env.example
+    environment:
+      - SERVICE=demo
+      - WEB_PORT=${WEB_PORT:-8000}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DASHBOARD=1
+    volumes:
+      - ./:/app
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      - mongo
+
   mongo:
     image: mongo:latest
+    container_name: crypto_mongo
     ports:
       - "27017:27017"
     volumes:

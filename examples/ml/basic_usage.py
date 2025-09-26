@@ -4,10 +4,7 @@
 ====================================================
 
 Các ví dụ đơn giản minh họa cách sử dụng từng thuật toán ML trong dự án crypto.
-Hoàn hảo cho người mới bắt đầu hiểu các khái niệm cố        # 4. Thực hiện dự đoán
-        print("\n🔮 Thực hiện dự đoán giá...")
-        test_predictions = model.predict(datasets['raw']['X_test_raw'].head(5))
-        actual_prices = datasets['raw']['y_test']['price'].head(5).valuesi và cách sử dụng cơ bản.
+Hoàn hảo cho người mới bắt đầu hiểu các khái niệm cốt lõi và cách sử dụng cơ bản.
 
 Tất cả kết quả và giải thích được in ra bằng tiếng Việt để dễ hiểu và tích hợp vào web.
 """
@@ -59,6 +56,9 @@ def chuyen_doi_dinh_dang_datasets(raw_datasets):
 
 def lay_chi_so_hieu_suat(training_results, model_type='regression'):
     """Helper function để chuẩn hóa kết quả từ các model types khác nhau"""
+    # Chuẩn hóa: nếu đầu vào chứa 'metrics' thì lấy metrics ra
+    if isinstance(training_results, dict) and 'metrics' in training_results:
+        training_results = training_results.get('metrics', {})
     if model_type == 'regression':
         return {
             'r2': training_results.get('test_r2', training_results.get('train_r2', 0)),
@@ -528,15 +528,18 @@ def vi_du_6_dich_vu_du_doan():
             if not self.da_huan_luyen:
                 raise ValueError("❌ Mô hình chưa được huấn luyện!")
             
+            if self.mo_hinh_gia is None or self.mo_hinh_xu_huong is None or self.mo_hinh_cum is None:
+                raise ValueError("❌ Một hoặc nhiều mô hình chưa sẵn sàng")
+            
             # Dự đoán giá
-            gia_du_doan = self.mo_hinh_gia.predict(du_lieu_dau_vao)[0]
+            gia_du_doan = float(self.mo_hinh_gia.predict(du_lieu_dau_vao)[0])
             
             # Dự đoán xu hướng
             xu_huong_du_doan = self.mo_hinh_xu_huong.predict(du_lieu_dau_vao)[0]
             xac_suat_xu_huong = self.mo_hinh_xu_huong.predict_proba(du_lieu_dau_vao)[0]
             
             # Phân cụm thị trường
-            cum_thi_truong = self.mo_hinh_cum.predict(du_lieu_dau_vao)[0]
+            cum_thi_truong = int(self.mo_hinh_cum.predict(du_lieu_dau_vao)[0])
             
             return {
                 'gia_du_doan': gia_du_doan,

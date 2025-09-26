@@ -36,27 +36,34 @@ class TestAlgorithmClasses(unittest.TestCase):
         X = np.random.randn(self.n_samples, self.n_features)
         y_price = np.sum(X, axis=1) + np.random.randn(self.n_samples) * 0.1
         y_price_change = np.diff(y_price, prepend=y_price[0])
-        
+
         # Create dataframes
         feature_cols = [f'feature_{i}' for i in range(self.n_features)]
         df = pd.DataFrame(X, columns=feature_cols)
         df['price'] = y_price
         df['price_change'] = y_price_change
+        # Simple classification target from price_change
+        df['trend'] = (df['price_change'] > 0).astype(int)
         
         # Split data (80% train, 20% test)
         split_idx = int(0.8 * self.n_samples)
         
+        self.feature_cols = feature_cols
+        self.train_df = df[:split_idx].reset_index(drop=True)
+        self.test_df = df[split_idx:].reset_index(drop=True)
         self.datasets = {
-            'train': df[:split_idx],
-            'test': df[split_idx:],
+            'train': self.train_df,
+            'test': self.test_df,
             'feature_cols': feature_cols
         }
         
-        # For clustering (simpler data)
-        self.clustering_data = {
-            'train': df[feature_cols][:split_idx],  # Only features for clustering
-            'feature_cols': feature_cols
-        }
+        # Convenience matrices/targets for predictions
+        self.X_train = self.train_df[self.feature_cols]
+        self.X_test = self.test_df[self.feature_cols]
+        self.y_train_reg = self.train_df['price']
+        self.y_test_reg = self.test_df['price']
+        self.y_train_cls = self.train_df['trend']
+        self.y_test_cls = self.test_df['trend']
     
     def test_linear_regression_model(self):
         """Test LinearRegressionModel"""
@@ -74,7 +81,8 @@ class TestAlgorithmClasses(unittest.TestCase):
         
         self.assertTrue(model.is_trained)
         self.assertIsNotNone(model.model)
-        self.assertIn('train_metrics', model.training_history)
+        self.assertTrue(isinstance(model.training_history, dict))
+        self.assertIn('metrics', model.training_history)
         
         # Test prediction (requires DataFrame input)
         test_features = self.datasets['test'][self.datasets['feature_cols']]
@@ -94,15 +102,15 @@ class TestAlgorithmClasses(unittest.TestCase):
         self.assertEqual(model.model_type, "regression")
         self.assertFalse(model.is_trained)
         
-        # Test training
-        model.train(self.X_train_reg, self.y_train_reg, self.X_val_reg, self.y_val_reg)
+        # Test training (datasets-style)
+        model.train(self.datasets)
         
         self.assertTrue(model.is_trained)
         self.assertIsNotNone(model.model)
         
         # Test prediction
-        predictions = model.predict(self.X_val_reg)
-        self.assertEqual(len(predictions), len(self.y_val_reg))
+        predictions = model.predict(self.X_test)
+        self.assertEqual(len(predictions), len(self.y_test_reg))
         
         print("✅ KNNRegressor tests passed!")
     
@@ -117,19 +125,19 @@ class TestAlgorithmClasses(unittest.TestCase):
         self.assertEqual(model.model_type, "classification")
         self.assertFalse(model.is_trained)
         
-        # Test training
-        model.train(self.X_train_cls, self.y_train_cls, self.X_val_cls, self.y_val_cls)
+        # Test training (datasets-style)
+        model.train(self.datasets)
         
         self.assertTrue(model.is_trained)
         self.assertIsNotNone(model.model)
         
         # Test prediction
-        predictions = model.predict(self.X_val_cls)
-        self.assertEqual(len(predictions), len(self.y_val_cls))
+        predictions = model.predict(self.X_test)
+        self.assertEqual(len(predictions), len(self.y_test_cls))
         
         # Test probabilities
-        probabilities = model.predict_proba(self.X_val_cls)
-        self.assertEqual(probabilities.shape[0], len(self.y_val_cls))
+        probabilities = model.predict_proba(self.X_test)
+        self.assertEqual(probabilities.shape[0], len(self.y_test_cls))
         
         print("✅ KNNClassifier tests passed!")
     
@@ -144,15 +152,15 @@ class TestAlgorithmClasses(unittest.TestCase):
         self.assertEqual(model.model_type, "clustering")
         self.assertFalse(model.is_trained)
         
-        # Test training
-        model.train(self.X_train_reg)
+        # Test training (datasets-style)
+        model.train(self.datasets)
         
         self.assertTrue(model.is_trained)
         self.assertIsNotNone(model.model)
         
         # Test prediction (cluster assignment)
-        cluster_labels = model.predict(self.X_val_reg)
-        self.assertEqual(len(cluster_labels), len(self.X_val_reg))
+        cluster_labels = model.predict(self.X_test)
+        self.assertEqual(len(cluster_labels), len(self.X_test))
         
         # Check cluster labels are within expected range
         unique_labels = np.unique(cluster_labels)
@@ -166,7 +174,7 @@ class TestAlgorithmClasses(unittest.TestCase):
         
         # Test with LinearRegressionModel
         model = LinearRegressionModel()
-        model.train(self.X_train_reg, self.y_train_reg, self.X_val_reg, self.y_val_reg)
+        model.train(self.datasets)
         
         # Save model
         try:

@@ -206,13 +206,13 @@ class CryptoMetrics:
     def _calculate_mape(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """Mean Absolute Percentage Error"""
         mask = y_true != 0
-        return np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100
+        return float(np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100)
     
     def _calculate_smape(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """Symmetric Mean Absolute Percentage Error"""
         denominator = (np.abs(y_true) + np.abs(y_pred)) / 2
         mask = denominator != 0
-        return np.mean(np.abs(y_true[mask] - y_pred[mask]) / denominator[mask]) * 100
+        return float(np.mean(np.abs(y_true[mask] - y_pred[mask]) / denominator[mask]) * 100)
     
     def _directional_accuracy(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """Accuracy of predicting direction of change"""

@@ -56,12 +56,10 @@ class KNNClassifier(BaseModel):
         self.feature_columns = None
         self.classes_ = None
         
-        # Update metadata
-        self.metadata.update({
-            'n_neighbors': n_neighbors,
-            'auto_tune': auto_tune,
-            'algorithm': 'KNeighborsClassifier'
-        })
+        # Update metadata with direct assignment
+        self.metadata['n_neighbors'] = str(n_neighbors)
+        self.metadata['auto_tune'] = str(auto_tune)
+        self.metadata['algorithm'] = 'KNeighborsClassifier'
     
     def _prepare_features(self, datasets: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, pd.Series]:
         """
@@ -137,21 +135,40 @@ class KNNClassifier(BaseModel):
         # Hyperparameter tuning
         if self.auto_tune:
             print("🔧 Tuning hyperparameters...")
-            param_grid = {
-                'n_neighbors': [3, 5, 7, 9, 11, 15],
-                'weights': ['uniform', 'distance'],
-                'metric': ['euclidean', 'manhattan']
-            }
-            
+            n_samples = len(X_train)
+            # Use a smaller, faster grid for very large datasets
+            if n_samples > 50000:
+                param_grid = {
+                    'n_neighbors': [3, 5, 7],
+                    'weights': ['distance'],
+                    'metric': ['manhattan']
+                }
+                cv_folds = 3
+            else:
+                param_grid = {
+                    'n_neighbors': [3, 5, 7, 9, 11, 15],
+                    'weights': ['uniform', 'distance'],
+                    'metric': ['euclidean', 'manhattan']
+                }
+                cv_folds = min(5, max(2, n_samples // 10))
+
+            # For very large datasets, sample a subset for tuning
+            if n_samples > 20000:
+                X_tune = X_train_scaled.sample(n=20000, random_state=42)
+                y_tune = y_train.loc[X_tune.index]
+            else:
+                X_tune = X_train_scaled
+                y_tune = y_train
+
             grid_search = GridSearchCV(
                 KNeighborsClassifier(),
                 param_grid,
-                cv=min(5, len(X_train) // 10),  # Adaptive CV based on data size
+                cv=cv_folds,  # Adaptive CV based on data size
                 scoring='accuracy',
-                n_jobs=-1
+                n_jobs=1
             )
             
-            grid_search.fit(X_train_scaled, y_train)
+            grid_search.fit(X_tune, y_tune)
             self.model = grid_search.best_estimator_
             best_params = grid_search.best_params_
             print(f"✅ Best parameters: {best_params}")
@@ -184,25 +201,30 @@ class KNNClassifier(BaseModel):
             test_metrics = self._evaluate_on_test(datasets['test'])
             train_metrics.update(test_metrics)
         
-        # Update model state
+        # Update model state with safe length checks
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        classes_count = len(self.classes_) if self.classes_ is not None else 0
+        
         self.is_trained = True
         self.training_history = {
             'timestamp': pd.Timestamp.now().isoformat(),
-            'n_features': len(self.feature_columns),
+            'n_features': feature_count,
             'n_samples': len(X_train),
-            'n_classes': len(self.classes_),
+            'n_classes': classes_count,
             'metrics': train_metrics
         }
         
-        # Update metadata
-        self.metadata.update({
-            'training_samples': len(X_train),
-            'feature_count': len(self.feature_columns),
-            'n_classes': len(self.classes_),
-            'classes': list(self.classes_),
-            'best_params': best_params,
-            'last_trained': pd.Timestamp.now().isoformat()
-        })
+        # Update metadata with safe length checks
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        classes_count = len(self.classes_) if self.classes_ is not None else 0
+        classes_list = list(self.classes_) if self.classes_ is not None else []
+        
+        self.metadata['training_samples'] = str(len(X_train))
+        self.metadata['feature_count'] = str(feature_count)
+        self.metadata['n_classes'] = str(classes_count)
+        self.metadata['classes'] = str(classes_list)
+        self.metadata['best_params'] = str(best_params)
+        self.metadata['last_trained'] = pd.Timestamp.now().isoformat()
         
         # Print results
         print(f"✅ Training completed!")
@@ -227,9 +249,13 @@ class KNNClassifier(BaseModel):
                          labels=['down', 'stable', 'up'])
             y_test = trend.astype(str)
         
-        # Remove NaN values
-        valid_idx = ~(X_test.isnull().any(axis=1) | y_test.isnull())
-        X_test = X_test[valid_idx]
+        # Remove NaN values - use simpler approach
+        X_test_clean = X_test.dropna()
+        y_test_clean = y_test.dropna()
+        
+        # Get common valid indices
+        valid_idx = X_test_clean.index.intersection(y_test_clean.index)
+        X_test = X_test.loc[valid_idx]
         y_test = y_test[valid_idx]
         
         # Encode labels (only transform, don't fit)
@@ -237,10 +263,11 @@ class KNNClassifier(BaseModel):
             y_test_encoded = self.label_encoder.transform(y_test)
         except ValueError:
             # Handle unseen labels
-            valid_labels = y_test.isin(self.classes_)
-            X_test = X_test[valid_labels]
-            y_test = y_test[valid_labels]
-            y_test_encoded = self.label_encoder.transform(y_test)
+            if self.classes_ is not None:
+                valid_labels = y_test.isin(self.classes_)
+                X_test = X_test[valid_labels]
+                y_test = y_test[valid_labels]
+                y_test_encoded = self.label_encoder.transform(y_test)
         
         # Scale features
         X_test_scaled = self.scaler.transform(X_test)
@@ -249,7 +276,7 @@ class KNNClassifier(BaseModel):
         y_pred_test = self.model.predict(X_test_scaled)
         
         return {
-            'test_accuracy': accuracy_score(y_test_encoded, y_pred_test)
+            'test_accuracy': float(accuracy_score(y_test_encoded, y_pred_test))
         }
     
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -293,7 +320,10 @@ class KNNClassifier(BaseModel):
             X = X[self.feature_columns].copy()
         
         X_scaled = self.scaler.transform(X)
-        return self.model.predict_proba(X_scaled)
+        probabilities = self.model.predict_proba(X_scaled)
+        if isinstance(probabilities, list):
+            return probabilities[0]
+        return probabilities
     
     def evaluate(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """
@@ -317,7 +347,7 @@ class KNNClassifier(BaseModel):
         y_pred_encoded = self.label_encoder.transform(y_pred)
         
         return {
-            'accuracy': accuracy_score(y_encoded, y_pred_encoded)
+            'accuracy': float(accuracy_score(y_encoded, y_pred_encoded))
         }
 
 
@@ -352,13 +382,11 @@ class KNNRegressor(BaseModel):
         self.scaler = StandardScaler()
         self.feature_columns = None
         
-        # Update metadata
-        self.metadata.update({
-            'target_type': target_type,
-            'n_neighbors': n_neighbors,
-            'auto_tune': auto_tune,
-            'algorithm': 'KNeighborsRegressor'
-        })
+        # Update metadata with direct assignment
+        self.metadata['target_type'] = target_type
+        self.metadata['n_neighbors'] = str(n_neighbors)
+        self.metadata['auto_tune'] = str(auto_tune)
+        self.metadata['algorithm'] = 'KNeighborsRegressor'
     
     def _prepare_features(self, datasets: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, pd.Series]:
         """
@@ -426,21 +454,40 @@ class KNNRegressor(BaseModel):
         # Hyperparameter tuning
         if self.auto_tune:
             print("🔧 Tuning hyperparameters...")
-            param_grid = {
-                'n_neighbors': [3, 5, 7, 9, 11, 15],
-                'weights': ['uniform', 'distance'],
-                'metric': ['euclidean', 'manhattan']
-            }
-            
+            n_samples = len(X_train)
+            # Use a smaller, faster grid for very large datasets
+            if n_samples > 50000:
+                param_grid = {
+                    'n_neighbors': [3, 5, 7],
+                    'weights': ['distance'],
+                    'metric': ['manhattan']
+                }
+                cv_folds = 3
+            else:
+                param_grid = {
+                    'n_neighbors': [3, 5, 7, 9, 11, 15],
+                    'weights': ['uniform', 'distance'],
+                    'metric': ['euclidean', 'manhattan']
+                }
+                cv_folds = min(5, max(2, n_samples // 10))
+
+            # For very large datasets, sample a subset for tuning
+            if n_samples > 20000:
+                X_tune = X_train_scaled.sample(n=20000, random_state=42)
+                y_tune = y_train.loc[X_tune.index]
+            else:
+                X_tune = X_train_scaled
+                y_tune = y_train
+
             grid_search = GridSearchCV(
                 KNeighborsRegressor(),
                 param_grid,
-                cv=min(5, len(X_train) // 10),
+                cv=cv_folds,
                 scoring='r2',
-                n_jobs=-1
+                n_jobs=1
             )
             
-            grid_search.fit(X_train_scaled, y_train)
+            grid_search.fit(X_tune, y_tune)
             self.model = grid_search.best_estimator_
             best_params = grid_search.best_params_
             print(f"✅ Best parameters: {best_params}")
@@ -476,23 +523,25 @@ class KNNRegressor(BaseModel):
             test_metrics = self._evaluate_on_test(datasets['test'])
             train_metrics.update(test_metrics)
         
-        # Update model state
+        # Update model state with safe length check
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        
         self.is_trained = True
         self.training_history = {
             'timestamp': pd.Timestamp.now().isoformat(),
             'target_type': self.target_type,
-            'n_features': len(self.feature_columns),
+            'n_features': feature_count,
             'n_samples': len(X_train),
             'metrics': train_metrics
         }
         
-        # Update metadata
-        self.metadata.update({
-            'training_samples': len(X_train),
-            'feature_count': len(self.feature_columns),
-            'best_params': best_params,
-            'last_trained': pd.Timestamp.now().isoformat()
-        })
+        # Update metadata with safe length check
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        
+        self.metadata['training_samples'] = str(len(X_train))
+        self.metadata['feature_count'] = str(feature_count)
+        self.metadata['best_params'] = str(best_params)
+        self.metadata['last_trained'] = pd.Timestamp.now().isoformat()
         
         # Print results
         print(f"✅ Training completed!")
@@ -513,10 +562,14 @@ class KNNRegressor(BaseModel):
         else:
             y_test = test_data['target_price_change'].copy()
         
-        # Remove NaN values
-        valid_idx = ~(X_test.isnull().any(axis=1) | y_test.isnull())
-        X_test = X_test[valid_idx]
-        y_test = y_test[valid_idx]
+        # Remove NaN values using dropna
+        X_test_clean = X_test.dropna()
+        y_test_clean = y_test.dropna()
+        
+        # Get common valid indices
+        valid_idx = X_test_clean.index.intersection(y_test_clean.index)
+        X_test = X_test.loc[valid_idx]
+        y_test = y_test.loc[valid_idx]
         
         # Scale features
         X_test_scaled = self.scaler.transform(X_test)

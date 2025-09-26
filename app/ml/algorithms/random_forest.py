@@ -192,10 +192,13 @@ class RandomForestModel(BaseModel):
         training_time = (end_time - start_time).total_seconds()
         
         # Feature importances
-        self.feature_importances_ = dict(zip(
-            self.feature_names_, 
-            self.model.feature_importances_
-        ))
+        if self.feature_names_ is not None:
+            self.feature_importances_ = dict(zip(
+                self.feature_names_, 
+                self.model.feature_importances_
+            ))
+        else:
+            self.feature_importances_ = None
         
         # Predictions
         y_pred_train = self.model.predict(X_train)
@@ -215,13 +218,17 @@ class RandomForestModel(BaseModel):
         self.training_metrics_ = metrics
         self.trained_ = True
         
-        metrics.update({
-            'training_time': training_time,
-            'n_estimators': self.n_estimators,
-            'max_depth': self.max_depth,
+        metrics['training_time'] = float(training_time)
+        metrics['n_estimators'] = float(self.n_estimators)
+        if self.max_depth is not None:
+            metrics['max_depth'] = float(self.max_depth)
+        else:
+            metrics['max_depth'] = 0.0
+        # Store task_type and target_type separately in metadata
+        self.metadata = {
             'task_type': self.task_type,
             'target_type': self.target_type
-        })
+        }
         
         print(f"✅ Training completed in {training_time:.2f}s!")
         self._print_metrics(metrics)
@@ -240,14 +247,14 @@ class RandomForestModel(BaseModel):
     def _calculate_classification_metrics(self, y_true, y_pred) -> Dict[str, float]:
         """Calculate classification metrics"""
         return {
-            'accuracy': accuracy_score(y_true, y_pred),
+            'accuracy': float(accuracy_score(y_true, y_pred)),
             'f1_macro': self._calculate_f1_macro(y_true, y_pred)
         }
     
     def _calculate_f1_macro(self, y_true, y_pred) -> float:
         """Calculate macro F1 score"""
         from sklearn.metrics import f1_score
-        return f1_score(y_true, y_pred, average='macro', zero_division=0)
+        return float(f1_score(y_true, y_pred, average='macro', zero_division=0))
     
     def _evaluate_test_set(self, test_df: pd.DataFrame) -> Dict[str, float]:
         """Evaluate model on test set"""
@@ -316,8 +323,11 @@ class RandomForestModel(BaseModel):
         if not self.trained_:
             raise ValueError("Model must be trained before prediction")
         
-        if isinstance(X, pd.DataFrame):
+        if isinstance(X, pd.DataFrame) and self.feature_names_ is not None:
             X = X[self.feature_names_]
+        elif isinstance(X, pd.Series) and self.feature_names_ is not None:
+            X_series = X[self.feature_names_]
+            X = pd.DataFrame([X_series])
         
         return self.model.predict(X)
     
@@ -347,8 +357,11 @@ class RandomForestModel(BaseModel):
                 y = pd.qcut(y, q=3, labels=[0, 1, 2])
         
         # Prepare features
-        if isinstance(X, pd.DataFrame):
+        if isinstance(X, pd.DataFrame) and self.feature_names_ is not None:
             X = X[self.feature_names_]
+        elif isinstance(X, pd.Series) and self.feature_names_ is not None:
+            X_series = X[self.feature_names_]
+            X = pd.DataFrame([X_series])
         
         # Predictions
         y_pred = self.model.predict(X)
@@ -369,8 +382,8 @@ class RandomForestModel(BaseModel):
         Returns:
             Dict of feature names and their importance scores
         """
-        if not self.trained_:
-            raise ValueError("Model must be trained first")
+        if not self.trained_ or self.feature_importances_ is None:
+            raise ValueError("Model must be trained first and have feature importances")
         
         # Sort by importance
         sorted_features = sorted(
@@ -385,7 +398,7 @@ class RandomForestModel(BaseModel):
                                 datasets: Dict[str, pd.DataFrame],
                                 param_grid: Optional[Dict] = None,
                                 cv: int = 3,
-                                scoring: str = None) -> Dict[str, Any]:
+                                scoring: Optional[str] = None) -> Dict[str, Any]:
         """
         🔧 Optimize hyperparameters using GridSearchCV
         

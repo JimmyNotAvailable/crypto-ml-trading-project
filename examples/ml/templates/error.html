@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Lỗi - Crypto ML{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Đã xảy ra lỗi</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ loi }}</p>
+                    <a href="{{ url_for('trang_chu') }}" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Về trang chủ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

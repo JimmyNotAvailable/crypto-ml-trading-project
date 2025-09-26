@@ -604,24 +604,6 @@ def generate_text_report(models, regression_results, classification_results):
     print("\n".join(report))
 
 def run_complete_evaluation(dataset_name='ml_datasets_top3'):
-    """Run complete model evaluation pipeline"""
-    print("=== COMPLETE MODEL EVALUATION PIPELINE ===")
-    
-    # Load datasets
-    datasets = load_prepared_datasets(dataset_name)
-    test_data = datasets['test_df']
-    
-    # Load trained models
-    models = load_trained_models()
-    
-    if not models:
-        print("❌ No trained models found! Please train models first.")
-        return
-    
-    # Extract metadata
-    models_metadata = {name: model_data.get('metadata', {}) for name, model_data in models.items()}
-    
-def run_complete_evaluation(dataset_name='ml_datasets_top3'):
     """
     Complete model evaluation pipeline - FIXED VERSION
     """

@@ -6,7 +6,7 @@ import json
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import psutil
 import requests
 
@@ -19,7 +19,7 @@ class HealthMonitor:
     - Alert generation
     """
     
-    def __init__(self, data_dir: str = None):
+    def __init__(self, data_dir: Optional[str] = None):
         self.data_dir = data_dir or os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "data", "realtime_production"

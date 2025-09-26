@@ -7,7 +7,6 @@ Scheduler tự động để train models theo lịch
 
 import os
 import sys
-import schedule
 import time
 from datetime import datetime
 
@@ -75,9 +74,22 @@ def main():
     print("⚡ Press Ctrl+C to stop scheduler")
     print("-" * 40)
     
+    # Import schedule lazily to avoid hard dependency at import time
+    try:
+        import schedule  # type: ignore
+    except Exception as e:
+        print(f"⚠️ 'schedule' package is not installed. Install with: pip install schedule. Running once now. Details: {e}")
+        # Fallback: run both tasks once and exit
+        try:
+            daily_training()
+            weekly_full_training()
+        except Exception as inner:
+            print(f"❌ Training execution error: {inner}")
+        return
+
     # Schedule daily training at 2 AM
     schedule.every().day.at("02:00").do(daily_training)
-    
+
     # Schedule weekly training on Sunday at 3 AM
     schedule.every().sunday.at("03:00").do(weekly_full_training)
     

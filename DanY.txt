@@ -1,0 +1,119 @@
+TIỂU LUẬN: ỨNG DỤNG MÔ HÌNH HỌC MÁY CHO PHÂN TÍCH & DỰ BÁO GIÁ TIỀN MÃ HÓA
+
+Chương 1. Mở đầu
+1.1. Lý do chọn đề tài
+- Thị trường tiền mã hóa (crypto) biến động mạnh, dữ liệu thời gian thực phong phú, phù hợp cho các bài toán học máy (ML) về dự báo và phân tích.
+- Nhu cầu ra quyết định nhanh (giao dịch/đầu tư) đòi hỏi công cụ tự động: bot Discord, dashboard, mô hình dự báo, giám sát.
+- Kho dự án cung cấp hạ tầng tương đối đầy đủ (thu thập dữ liệu, xử lý, huấn luyện, đóng gói mô hình, tích hợp bot), có thể tổng hợp thành một giải pháp end-to-end.
+
+1.2. Vấn đề đặt ra
+- Làm sao thiết kế một pipeline ML nhất quán từ thu thập dữ liệu → tiền xử lý → trích xuất đặc trưng → huấn luyện → đánh giá → triển khai (inference) thời gian thực.
+- Làm sao đảm bảo số liệu thời gian thực đồng nhất giữa các module (bot, dashboard), tránh trùng lặp phản hồi khi nhiều instance chạy song song.
+- Làm sao tổ chức thư mục, mã nguồn, mô hình, cấu hình và quy trình huấn luyện – triển khai để dễ vận hành và mở rộng.
+
+1.3. Mục tiêu & phạm vi
+- Xây dựng hệ thống demo end-to-end:
+  + Thu thập/đọc dữ liệu OHLCV, cache và lưu trữ cục bộ.
+  + Huấn luyện các mô hình hồi quy/phân loại cơ bản (Linear Regression, Logistic Regression, KNN) và pipeline đặc trưng.
+  + Đóng gói mô hình production (export) và cung cấp bộ nạp nhanh quick_loader cho inference.
+  + Tích hợp bot Discord cung cấp lệnh: dự đoán (!dudoan), giá (!price/!gia), biểu đồ/TA (!chart), movers, dữ liệu JSON tuỳ chỉnh.
+  + Đồng nhất dữ liệu thời gian thực từ Binance (fallback stub khi mất kết nối) để mọi lệnh dùng chung nguồn.
+- Phạm vi: Mục tiêu học thuật/thực hành; không bao gồm chiến lược giao dịch thực tế hay tối ưu lợi nhuận.
+
+1.4. Phương pháp nghiên cứu
+- Phân tích hệ thống hiện hữu: cấu trúc mã nguồn, tài liệu kiến trúc, luồng dữ liệu, các script huấn luyện và triển khai.
+- Áp dụng mô hình thí nghiệm lặp (iterative): tinh chỉnh mô hình, chuẩn hoá features, đánh giá bằng các chỉ số R²/MAE, so sánh kịch bản.
+- Tích hợp phần mềm theo hướng module hoá (separation of concerns): data, features, models, services, bot.
+
+1.5. Bố cục báo cáo
+- Chương 1: Mở đầu (bối cảnh, vấn đề, mục tiêu, phương pháp, bố cục)
+- Chương 2: Cơ sở lý thuyết & nghiên cứu liên quan
+- Chương 3: Phân tích & thiết kế hệ thống/giải pháp
+- Chương 4: Triển khai & kết quả
+- Chương 5: Kết luận & hướng phát triển
+
+Chương 2. Cơ sở lý thuyết & nghiên cứu liên quan
+2.1. Khái niệm, công nghệ nền tảng
+- Dữ liệu chuỗi thời gian (time series), OHLCV: Open, High, Low, Close, Volume.
+- Học máy giám sát: hồi quy (dự báo giá), phân loại (tăng/giảm), đánh giá bằng R², MAE, accuracy/F1…
+- Tiền xử lý & đặc trưng: chuẩn hoá/chuẩn hoá min-max, đường trung bình động (MA), biến động (volatility), returns.
+- Tích hợp ứng dụng: Discord bot (discord.py), REST/HTTP client (requests), Docker, MongoDB, Flask/Plotly cho dashboard.
+
+2.2. Nghiên cứu/ứng dụng trước đây
+- Ứng dụng ML cơ bản cho giá crypto: Linear/Logistic Regression, KNN trên đặc trưng kỹ thuật đơn giản.
+- Phân tích kỹ thuật (TA) cổ điển: RSI, MA, hỗ trợ/kháng cự (support/resistance). Trong dự án có phiên bản demo, không thay thế TA chuyên sâu.
+- Hệ thống bot trợ giúp giao dịch: lệnh hỏi nhanh về giá, movers, chart; giao diện đơn giản nhưng phản hồi tức thời.
+
+Chương 3. Phân tích & thiết kế hệ thống/giải pháp
+3.1. Yêu cầu hệ thống
+- Chức năng:
+  + Thu thập và lưu trữ dữ liệu (các folder data/, db/, cache/).
+  + Huấn luyện mô hình và xuất gói production (scripts/ml/train_and_export_production.py → data/models_production/).
+  + Inference nhanh từ quick_loader; bot Discord read-only, không giao dịch thực.
+  + Cung cấp lệnh bot: !ping, !help, !dudoan, !dudoan_json, !price|!gia, !movers, !chart, !ds.
+- Phi chức năng:
+  + Tính nhất quán dữ liệu: mọi lệnh giá/TA dùng chung nguồn realtime (Binance) với fallback stub.
+  + Tránh phản hồi trùng: reaction-claim + file-claim theo message id; lock-file 1 instance; decorators cooldown + max_concurrency.
+  + Dễ mở rộng & đóng gói (Docker Compose: web, bot, demo, mongo).
+
+3.2. Kiến trúc tổng thể
+- Tầng dữ liệu: `data/` (ohlcv, cache, realtime, models_production), MongoDB (tuỳ chọn), db/init cho seed.
+- Tầng ML:
+  + `training/`, `scripts/ml/` huấn luyện, export; `app/ml/algorithms/` (Linear/Logistic/KNN,…).
+  + `data/models_production/quick_loader.py` cung cấp `predict_price(features)` để bot gọi nhanh.
+- Tầng dịch vụ/ứng dụng:
+  + Bot Discord `app/bot.py`: lệnh, anti-dup, đồng bộ dữ liệu realtime.
+  + Web/dashboard (Flask/Plotly) trong `web/` và `examples/ml/web_dashboard.py` (tuỳ chọn demo).
+- Tầng triển khai:
+  + Dockerfile, docker-compose.yml, entrypoint.sh; môi trường ảo `crypto-venv/` cho dev.
+
+3.3. Mô hình dữ liệu & ERD/UML (mô tả khái quát)
+- ERD đơn giản:
+  + Collections/Bảng: symbols, ohlcv (symbol, timestamp, open, high, low, close, volume), models (name, path, metrics), predictions (symbol, ts, y_pred, features, metrics).
+- UML thành phần (Component):
+  + Bot (Commands) → MarketDataService (Binance client + cache) → FeatureBuilder → QuickLoader → Models.
+  + TrainingPipeline → ModelRegistry (local JSON) → Exporter → QuickLoader.
+
+3.4. Thuật toán sử dụng
+- Linear Regression (dự báo giá liên tục): chuẩn hoá đặc trưng, đánh giá R²/MAE.
+- Logistic Regression (dự báo tăng/giảm): xử lý label, cân bằng dữ liệu, đánh giá accuracy/F1.
+- KNN (tham khảo): lựa chọn k, metric khoảng cách cho features chuẩn hoá.
+- Heuristic TA demo: RSI giả lập, MA signal, ngưỡng support/resistance.
+
+Chương 4. Triển khai & kết quả
+4.1. Công cụ, môi trường
+- Ngôn ngữ: Python 3.x
+- Thư viện: numpy, pandas, scikit-learn, requests, discord.py, flask, plotly, joblib, psutil…
+- Hạ tầng: Docker, docker-compose; MongoDB (tùy chọn), venv `crypto-venv/`.
+
+4.2. Cấu hình / thực nghiệm
+- Huấn luyện:
+  + Chạy task VS Code: “Train models and export production package” (scripts/ml/train_and_export_production.py).
+  + Sinh model và quick_loader trong `data/models_production/`.
+- Bot Discord:
+  + BOT_TOKEN từ env hoặc `token.txt`.
+  + Đồng bộ số liệu realtime qua Binance: lệnh `!gia/!price`, `!chart`, `!dudoan` đều dùng cùng helper `get_market_snapshot()` (fallback stub nếu lỗi mạng).
+  + Chống trùng: reaction-claim + file-claim `app/.claims/`, lock-file `app/.bot.lock`; decorators cooldown + max_concurrency.
+- Docker Compose:
+  + Services: web, bot, demo, mongo; lưu ý `demo` có thể khởi chạy bot nền.
+
+4.3. Kết quả đạt được (demo)
+- Mô hình Linear+Logit production hoạt động (R² cao trong phạm vi đặc trưng huấn luyện); `quick_loader` trả kết quả ổn định.
+- Bot phản hồi theo một nguồn giá thống nhất (Binance), footer hiển thị Source/Instance giúp truy vết.
+- Hiện tượng trả lời trùng được giảm/loại bỏ nhờ cơ chế claim + khoá instance.
+
+Chương 5. Kết luận & hướng phát triển
+5.1. Kết luận
+- Đã xây dựng được pipeline demo end-to-end: dữ liệu → mô hình → export → bot Discord → realtime unified.
+- Cải thiện độ tin cậy và nhất quán số liệu, giảm hiện tượng phản hồi trùng lặp.
+
+5.2. Hạn chế
+- Mô hình mang tính minh hoạ; chưa tối ưu hoá đặc trưng/siêu tham số sâu.
+- Chưa tích hợp các nguồn dữ liệu nâng cao (order book, on-chain, sentiment) hay market cap realtime chính xác.
+- Chưa có chiến lược giao dịch/backtest chuẩn.
+
+5.3. Hướng phát triển
+- Bổ sung feature engineering (technical indicators thực, seasonalities), thử nghiệm các mô hình mạnh hơn (XGBoost, LSTM/Transformers cho time series).
+- Tối ưu pipeline huấn luyện/tự động hoá (MLflow, model registry, CI/CD).
+- Tích hợp thêm nguồn dữ liệu (CoinGecko/CMC cho market cap, on-chain APIs, sentiment từ mạng xã hội).
+- Mở rộng dashboard, thêm cảnh báo/bot PM, phân quyền/đa máy chủ.

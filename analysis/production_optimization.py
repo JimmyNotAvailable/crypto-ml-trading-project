@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import numpy as np
 
 class ProductionAnalyzer:
@@ -16,7 +16,7 @@ class ProductionAnalyzer:
     Phân tích hiệu suất, đưa ra khuyến nghị tối ưu
     """
     
-    def __init__(self, data_dir: str = None):
+    def __init__(self, data_dir: Optional[str] = None):
         self.data_dir = data_dir or os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "data", "realtime_production"

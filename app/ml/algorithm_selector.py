@@ -29,7 +29,7 @@ class ModelPerformanceAnalyzer:
     🔍 Phân tích hiệu suất các thuật toán ML
     """
     
-    def __init__(self, training_jobs_path: str = None, model_registry_path: str = None):
+    def __init__(self, training_jobs_path: Optional[str] = None, model_registry_path: Optional[str] = None):
         # Tìm project root từ vị trí hiện tại
         current_path = Path(__file__).absolute()
         self.project_root = current_path.parent.parent.parent  # từ app/ml/ lên project root
@@ -212,7 +212,7 @@ class ModelPerformanceAnalyzer:
         
         return round(score, 2)
     
-    def get_algorithm_ranking(self, target_type: str = None) -> pd.DataFrame:
+    def get_algorithm_ranking(self, target_type: Optional[str] = None) -> pd.DataFrame:
         """
         🏅 Lấy xếp hạng thuật toán
         
@@ -342,8 +342,9 @@ class AlgorithmSelector:
         report += "🥇 TOP 5 THUẬT TOÁN TỐT NHẤT:\n"
         report += "-" * 30 + "\n"
         
-        for i, row in ranking.head(5).iterrows():
-            medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]
+        for idx, (i, row) in enumerate(ranking.head(5).iterrows()):
+            medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+            medal = medals[idx] if idx < len(medals) else f"{idx+1}️⃣"
             report += f"{medal} {row['algorithm']} ({row['target_type']})\n"
             report += f"   📊 Điểm số: {row['performance_score']:.1f}/100\n"
             report += f"   📈 R²: {row['avg_r2']:.4f}\n"

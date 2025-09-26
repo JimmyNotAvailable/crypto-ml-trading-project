@@ -15,8 +15,10 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 import warnings
 warnings.filterwarnings('ignore')
 
-# Add path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+# Add project root to path so 'app.' imports resolve
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from app.ml.data_prep import load_prepared_datasets
 
@@ -53,10 +55,11 @@ class CryptoDataCleaner:
         outliers = z_scores > threshold
         return outliers
     
-    def cap_outliers_percentile(self, data, column, lower_percentile=1, upper_percentile=99):
-        """Cap outliers using percentile method"""
-        lower_cap = data[column].quantile(lower_percentile / 100)
-        upper_cap = data[column].quantile(upper_percentile / 100)
+    def cap_outliers_percentile(self, data, column, lower_percentile: float = 1.0, upper_percentile: float = 99.0):
+        """Cap outliers using percentile method.
+        Accepts integer or float percent thresholds (0-100)."""
+        lower_cap = data[column].quantile(float(lower_percentile) / 100.0)
+        upper_cap = data[column].quantile(float(upper_percentile) / 100.0)
         
         data[column] = data[column].clip(lower=lower_cap, upper=upper_cap)
         return data, lower_cap, upper_cap

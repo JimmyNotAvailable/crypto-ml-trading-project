@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Favicon Generator</title>
+</head>
+<body>
+    <script>
+        // Tạo favicon đơn giản bằng canvas
+        function createFavicon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#667eea';
+            ctx.fillRect(0, 0, 32, 32);
+            
+            // Bitcoin symbol (simplified)
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('₿', 16, 22);
+            
+            return canvas.toDataURL();
+        }
+        
+        // Download favicon
+        function downloadFavicon() {
+            const dataUrl = createFavicon();
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'favicon.ico';
+            a.click();
+        }
+        
+        // Auto download
+        setTimeout(downloadFavicon, 1000);
+        
+        document.write('<h3>Favicon sẽ được tải về sau 1 giây...</h3>');
+        document.write('<p>Hoặc click để tải: <button onclick="downloadFavicon()">Download Favicon</button></p>');
+    </script>
+</body>
+</html>

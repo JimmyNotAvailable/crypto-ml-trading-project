@@ -102,12 +102,12 @@ class ModelEvaluator:
     def evaluate_regression(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
         """Standard regression metrics"""
         return {
-            'mae': mean_absolute_error(y_true, y_pred),
-            'mse': mean_squared_error(y_true, y_pred),
-            'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
-            'r2': r2_score(y_true, y_pred),
-            'mape': np.mean(np.abs((y_true - y_pred) / y_true)) * 100,
-            'max_error': np.max(np.abs(y_true - y_pred))
+            'mae': float(mean_absolute_error(y_true, y_pred)),
+            'mse': float(mean_squared_error(y_true, y_pred)),
+            'rmse': float(np.sqrt(mean_squared_error(y_true, y_pred))),
+            'r2': float(r2_score(y_true, y_pred)),
+            'mape': float(np.mean(np.abs((y_true - y_pred) / y_true)) * 100),
+            'max_error': float(np.max(np.abs(y_true - y_pred)))
         }
     
     @staticmethod
@@ -116,10 +116,10 @@ class ModelEvaluator:
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
         
         return {
-            'accuracy': accuracy_score(y_true, y_pred),
-            'precision': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-            'recall': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-            'f1': f1_score(y_true, y_pred, average='weighted', zero_division=0)
+            'accuracy': float(accuracy_score(y_true, y_pred)),
+            'precision': float(precision_score(y_true, y_pred, average='weighted', zero_division=0)),
+            'recall': float(recall_score(y_true, y_pred, average='weighted', zero_division=0)),
+            'f1': float(f1_score(y_true, y_pred, average='weighted', zero_division=0))
         }
 
 class ModelPersistence:
@@ -189,8 +189,10 @@ class FeatureEngineering:
         # RSI
         if 'close' in df.columns:
             delta = df['close'].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            # Fix the comparison by converting to numeric first
+            delta_numeric = pd.to_numeric(delta, errors='coerce')
+            gain = (delta_numeric.where(delta_numeric > 0, 0)).rolling(window=14).mean()
+            loss = (-delta_numeric.where(delta_numeric < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             df_tech['rsi'] = 100 - (100 / (1 + rs))
         
@@ -305,7 +307,7 @@ def setup_logging(log_level: str = 'INFO') -> None:
         ]
     )
 
-def get_memory_usage(df: pd.DataFrame) -> Dict[str, str]:
+def get_memory_usage(df: pd.DataFrame) -> Dict[str, Any]:
     """Get memory usage information for DataFrame"""
     memory_usage = df.memory_usage(deep=True)
     total_memory = memory_usage.sum()

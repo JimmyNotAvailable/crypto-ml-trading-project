@@ -185,7 +185,7 @@ def huong_dan_2_tich_hop_web():
     print(f"   📋 Bảng so sánh hiệu suất mô hình")
     print(f"   🔄 Cập nhật tự động mỗi 30 giây")
     
-    print(f"\n🔸 3. DATABASE (SQLite):")
+    print(f"\n🔸 3. DATABASE (mongoDB):")
     print(f"   💾 Lưu trữ lịch sử dự đoán")
     print(f"   📊 Theo dõi hiệu suất mô hình")
     print(f"   💰 Ghi nhận giao dịch bot")

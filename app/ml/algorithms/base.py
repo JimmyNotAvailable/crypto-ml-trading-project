@@ -179,17 +179,17 @@ class BaseModel(ABC):
         instance.model_type = instance.metadata['model_type']
         instance.is_trained = True
         
-        # Restore model-specific attributes
-        instance.feature_columns = data.get('feature_columns', None)
-        instance.scaler = data.get('scaler', None)
-        instance.label_encoder = data.get('label_encoder', None)
-        instance.classes_ = data.get('classes_', None)
-        instance.cluster_centers_ = data.get('cluster_centers_', None)
-        instance.labels_ = data.get('labels_', None)
-        instance.target_type = data.get('target_type', instance.metadata.get('target_type', 'unknown'))
-        instance.normalize_features = data.get('normalize_features', instance.metadata.get('normalize_features', False))
-        instance.n_clusters = data.get('n_clusters', instance.metadata.get('n_clusters', 3))
-        instance.auto_tune = data.get('auto_tune', instance.metadata.get('auto_tune', False))
+        # Restore model-specific attributes using setattr to avoid typing issues
+        setattr(instance, 'feature_columns', data.get('feature_columns', None))
+        setattr(instance, 'scaler', data.get('scaler', None))
+        setattr(instance, 'label_encoder', data.get('label_encoder', None))
+        setattr(instance, 'classes_', data.get('classes_', None))
+        setattr(instance, 'cluster_centers_', data.get('cluster_centers_', None))
+        setattr(instance, 'labels_', data.get('labels_', None))
+        setattr(instance, 'target_type', data.get('target_type', instance.metadata.get('target_type', 'unknown')))
+        setattr(instance, 'normalize_features', data.get('normalize_features', instance.metadata.get('normalize_features', False)))
+        setattr(instance, 'n_clusters', data.get('n_clusters', instance.metadata.get('n_clusters', 3)))
+        setattr(instance, 'auto_tune', data.get('auto_tune', instance.metadata.get('auto_tune', False)))
         
         print(f"✅ Model loaded: {filepath}")
         return instance

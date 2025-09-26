@@ -42,8 +42,8 @@ class CollectionStats:
     total_symbols: int = 0
     successful_collections: int = 0
     failed_collections: int = 0
-    start_time: datetime = None
-    last_collection_time: datetime = None
+    start_time: Optional[datetime] = None
+    last_collection_time: Optional[datetime] = None
     collections_per_minute: float = 0.0
     avg_response_time: float = 0.0
 
@@ -69,10 +69,10 @@ class EnhancedCryptoDataCollector:
     ]
     
     def __init__(self, 
-                 symbols: List[str] = None,
+                 symbols: Optional[List[str]] = None,
                  collection_interval: int = 60,  # seconds
                  use_mongodb: bool = True,
-                 data_dir: str = None):
+                 data_dir: Optional[str] = None):
         """
         Initialize Enhanced Data Collector
         
@@ -160,7 +160,7 @@ class EnhancedCryptoDataCollector:
                 self.request_count = 0
                 self.last_reset_time = time.time()
     
-    def _make_request(self, url: str, params: Dict = None) -> Optional[Dict]:
+    def _make_request(self, url: str, params: Optional[Dict] = None) -> Optional[Dict]:
         """Make API request với error handling và rate limiting"""
         self._check_rate_limit()
         

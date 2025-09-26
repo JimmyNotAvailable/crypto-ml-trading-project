@@ -38,7 +38,7 @@ class CryptoDataCollector:
     - Error handling
     """
     
-    def __init__(self, data_dir: str = None):
+    def __init__(self, data_dir: Optional[str] = None):
         """
         Initialize Data Collector
         
@@ -97,7 +97,7 @@ class CryptoDataCollector:
             logger.error(f"❌ Error getting USD/VND rate: {str(e)}")
             return self.usd_vnd_rate
     
-    def get_binance_price(self, symbol: str) -> Dict:
+    def get_binance_price(self, symbol: str) -> Optional[Dict]:
         """
         📊 Lấy giá từ Binance API
         
@@ -276,7 +276,7 @@ class CryptoDataCollector:
             logger.error(f"❌ Error preparing features for {symbol}: {str(e)}")
             return None
     
-    def save_to_file(self, data: Dict, filename: str = None):
+    def save_to_file(self, data: Dict, filename: Optional[str] = None):
         """
         💾 Lưu dữ liệu vào file JSON
         

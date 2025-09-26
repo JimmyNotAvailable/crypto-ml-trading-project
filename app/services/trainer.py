@@ -193,7 +193,7 @@ class EnterpriseTrainer:
                 
                 # For classification, convert to categorical if needed
                 # This is a simplified version - you may need to adapt based on your data structure
-                model.train(X_train, y_train, X_val, y_val)
+                model.train(datasets)
                 
             else:
                 # Regression
@@ -206,7 +206,7 @@ class EnterpriseTrainer:
                 X_test = datasets['X_test']
                 y_test = datasets['y_test'][job.target_type]
                 
-                model.train(X_train, y_train, X_val, y_val)
+                model.train(datasets)
             
             return {
                 'model_id': f"knn_{job.job_id}",

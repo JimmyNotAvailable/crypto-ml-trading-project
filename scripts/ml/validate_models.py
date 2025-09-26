@@ -15,8 +15,10 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
-# Add path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+# Add project root to path so internal imports can resolve when needed
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 class ModelValidator:
     """Comprehensive model validation and testing"""
@@ -41,18 +43,21 @@ class ModelValidator:
         print("🔍 MODEL INTEGRITY VALIDATION")
         print("=" * 60)
         
-        models = self.retrained_models['models']
-        feature_cols = self.retrained_models['feature_cols']
+        if not isinstance(self.retrained_models, dict):
+            print("❌ Invalid models container format")
+            return
+        models = self.retrained_models.get('models', {})
+        feature_cols = self.retrained_models.get('feature_cols', [])
         
         # Create dummy data for testing
         n_features = len(feature_cols)
         dummy_data = np.random.randn(10, n_features)
         
-        for name, model in models.items():
+        for name, model in (models or {}).items():
             try:
                 if hasattr(model, 'predict'):
                     predictions = model.predict(dummy_data)
-                    print(f"✅ {name}: Working ({len(predictions)} predictions)")
+                    print(f"✅ {name}: Working ({len(predictions) if hasattr(predictions, '__len__') else 'n/a'} predictions)")
                 elif hasattr(model, 'predict_proba'):
                     probabilities = model.predict_proba(dummy_data)
                     print(f"✅ {name}: Working ({probabilities.shape} probabilities)")
@@ -77,7 +82,10 @@ class ModelValidator:
             print("📊 Testing with 5 sample crypto data points:")
             print(f"Actual prices: {y_test_price.values}")
             
-            models = self.retrained_models['models']
+            if not isinstance(self.retrained_models, dict):
+                print("❌ Invalid models container format")
+                return
+            models = self.retrained_models.get('models', {})
             
             # Test regression models
             regression_models = ['linear_regression', 'ridge_regression', 'lasso_regression', 'random_forest', 'knn_regressor']
@@ -175,34 +183,44 @@ class ModelValidator:
         print(f"\n📋 MODEL EVALUATION REPORT")
         print("=" * 60)
         
-        performance = self.retrained_models['performance']
+        if not isinstance(self.retrained_models, dict):
+            print("❌ Invalid models container format")
+            return {
+                'best_regression': None,
+                'best_classification': None,
+                'best_clustering': None
+            }
+        performance = self.retrained_models.get('performance', {})
         
         # Best regression model
-        regression_models = {k: v for k, v in performance.items() if v['type'] == 'regression'}
+        regression_models = {k: v for k, v in performance.items() if isinstance(v, dict) and v.get('type') == 'regression'}
+        best_regression = None
         if regression_models:
-            best_regression = min(regression_models.items(), key=lambda x: x[1]['test_mae'])
+            best_regression = min(regression_models.items(), key=lambda x: x[1].get('test_mae', float('inf')))
             print(f"🏆 Best Regression Model: {best_regression[0]}")
-            print(f"   MAE: ${best_regression[1]['test_mae']:.2f}")
-            print(f"   R²:  {best_regression[1]['test_r2']:.3f}")
+            print(f"   MAE: ${best_regression[1].get('test_mae', float('nan')):.2f}")
+            print(f"   R²:  {best_regression[1].get('test_r2', float('nan')):.3f}")
         
         # Classification accuracy
-        classification_models = {k: v for k, v in performance.items() if v['type'] == 'classification'}
+        classification_models = {k: v for k, v in performance.items() if isinstance(v, dict) and v.get('type') == 'classification'}
+        best_classification = None
         if classification_models:
-            best_classification = max(classification_models.items(), key=lambda x: x[1]['test_accuracy'])
+            best_classification = max(classification_models.items(), key=lambda x: x[1].get('test_accuracy', float('-inf')))
             print(f"🏆 Best Classification Model: {best_classification[0]}")
-            print(f"   Accuracy: {best_classification[1]['test_accuracy']:.3f}")
+            print(f"   Accuracy: {best_classification[1].get('test_accuracy', float('nan')):.3f}")
         
         # Clustering quality
-        clustering_models = {k: v for k, v in performance.items() if v['type'] == 'clustering'}
+        clustering_models = {k: v for k, v in performance.items() if isinstance(v, dict) and v.get('type') == 'clustering'}
+        best_clustering = None
         if clustering_models:
-            best_clustering = max(clustering_models.items(), key=lambda x: x[1]['silhouette_score'])
+            best_clustering = max(clustering_models.items(), key=lambda x: x[1].get('silhouette_score', float('-inf')))
             print(f"🏆 Best Clustering Model: {best_clustering[0]}")
-            print(f"   Silhouette Score: {best_clustering[1]['silhouette_score']:.3f}")
+            print(f"   Silhouette Score: {best_clustering[1].get('silhouette_score', float('nan')):.3f}")
         
         return {
-            'best_regression': best_regression[0] if regression_models else None,
-            'best_classification': best_classification[0] if classification_models else None,
-            'best_clustering': best_clustering[0] if clustering_models else None
+            'best_regression': (best_regression[0] if best_regression else None),
+            'best_classification': (best_classification[0] if best_classification else None),
+            'best_clustering': (best_clustering[0] if best_clustering else None)
         }
     
     def save_production_models(self):
@@ -214,28 +232,47 @@ class ModelValidator:
         prod_dir = 'data/models_production'
         os.makedirs(prod_dir, exist_ok=True)
         
-        # Best models for production
+        if not isinstance(self.retrained_models, dict):
+            print("❌ Invalid models container format")
+            return None
+        models = self.retrained_models.get('models', {}) or {}
+        performance = self.retrained_models.get('performance', {}) or {}
+        scalers_all = self.retrained_models.get('scalers', {}) or {}
+        feature_cols = self.retrained_models.get('feature_cols', [])
+
+        price_predictor = models.get('ridge_regression') or models.get('linear_regression') or next(iter(models.values()), None)
+        trend_classifier = models.get('knn_classifier')
+        data_clusterer = models.get('kmeans')
+        if price_predictor is None:
+            print("❌ No regression model available to save")
+            return None
+        if trend_classifier is None:
+            print("⚠️ No classifier found; proceeding without trend classifier")
+        if data_clusterer is None:
+            print("⚠️ No clustering model found; proceeding without clusterer")
+
         best_models = {
-            'price_predictor': self.retrained_models['models']['ridge_regression'],  # Best MAE performance
-            'trend_classifier': self.retrained_models['models']['knn_classifier'],
-            'data_clusterer': self.retrained_models['models']['kmeans']
+            'price_predictor': price_predictor,
+            **({'trend_classifier': trend_classifier} if trend_classifier is not None else {}),
+            **({'data_clusterer': data_clusterer} if data_clusterer is not None else {})
         }
         
         # Save scalers
-        scalers = {
-            'robust_scaler': self.retrained_models['scalers']['robust_scaler'],
-            'power_transformer': self.retrained_models['scalers']['power_transformer']
-        }
+        scalers = {}
+        if 'robust_scaler' in scalers_all:
+            scalers['robust_scaler'] = scalers_all['robust_scaler']
+        if 'power_transformer' in scalers_all:
+            scalers['power_transformer'] = scalers_all['power_transformer']
         
         # Production package
         production_package = {
             'models': best_models,
             'scalers': scalers,
-            'feature_cols': self.retrained_models['feature_cols'],
+            'feature_cols': feature_cols,
             'performance': {
-                'price_predictor_mae': self.retrained_models['performance']['ridge_regression']['test_mae'],
-                'price_predictor_r2': self.retrained_models['performance']['ridge_regression']['test_r2'],
-                'trend_classifier_accuracy': self.retrained_models['performance']['knn_classifier']['test_accuracy']
+                'price_predictor_mae': (performance.get('ridge_regression', {}) or performance.get('linear_regression', {})).get('test_mae', float('nan')),
+                'price_predictor_r2': (performance.get('ridge_regression', {}) or performance.get('linear_regression', {})).get('test_r2', float('nan')),
+                **({'trend_classifier_accuracy': performance.get('knn_classifier', {}).get('test_accuracy', float('nan'))} if trend_classifier is not None else {})
             },
             'metadata': {
                 'created_date': datetime.now().isoformat(),
@@ -302,9 +339,13 @@ def main():
         return
     
     print(f"📊 Loaded models info:")
-    print(f"   Models: {list(validator.retrained_models['models'].keys())}")
-    print(f"   Features: {len(validator.retrained_models['feature_cols'])}")
-    print(f"   Training date: {validator.retrained_models['metadata']['training_date']}")
+    if isinstance(validator.retrained_models, dict):
+        print(f"   Models: {list((validator.retrained_models.get('models') or {}).keys())}")
+        print(f"   Features: {len(validator.retrained_models.get('feature_cols', []))}")
+        meta = validator.retrained_models.get('metadata', {}) or {}
+        print(f"   Training date: {meta.get('training_date', 'unknown')}")
+    else:
+        print("   (Invalid models container format)")
     
     # Validation steps
     print(f"\n" + "="*80)

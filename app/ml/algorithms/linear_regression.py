@@ -17,6 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from typing import Dict, Any, Optional, Tuple
 import warnings
 warnings.filterwarnings('ignore')
@@ -52,12 +53,10 @@ class LinearRegressionModel(BaseModel):
         self.scaler = StandardScaler() if normalize_features else None
         self.feature_columns = None
         
-        # Update metadata
-        self.metadata.update({
-            'target_type': target_type,
-            'normalize_features': normalize_features,
-            'algorithm': 'LinearRegression'
-        })
+        # Update metadata with direct assignment
+        self.metadata['target_type'] = target_type
+        self.metadata['normalize_features'] = str(normalize_features)
+        self.metadata['algorithm'] = 'LinearRegression'
     
     def _prepare_features(self, datasets: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, pd.Series]:
         """
@@ -71,7 +70,55 @@ class LinearRegressionModel(BaseModel):
         """
         print(f"🔧 Preparing features for {self.target_type} prediction...")
         
-        # Get training data
+        # Check dataset structure and get training data
+        if 'train' in datasets:
+            # Old structure with 'train' key
+            train_data = datasets['train'].copy()
+        elif 'X_train' in datasets:
+            # New structure with separate X_train, y_train
+            X = datasets['X_train'].copy()
+            if self.target_type == 'price':
+                y = datasets.get('y_train', datasets.get('y_train_price'))
+            elif self.target_type == 'price_change':
+                y = datasets.get('y_train_change', datasets.get('y_train_price_change'))
+            else:
+                raise ValueError(f"❌ Invalid target_type: {self.target_type}")
+            
+            # If target not found, try to extract from feature columns
+            if y is None:
+                if 'target_price' in X.columns and self.target_type == 'price':
+                    y = X['target_price'].copy()
+                    X = X.drop(['target_price'], axis=1, errors='ignore')
+                elif 'target_price_change' in X.columns and self.target_type == 'price_change':
+                    y = X['target_price_change'].copy()
+                    X = X.drop(['target_price_change'], axis=1, errors='ignore')
+                else:
+                    raise ValueError(f"❌ No target found for {self.target_type}")
+            
+            # Clean feature columns
+            exclude_cols = ['date', 'symbol', 'target_price', 'target_price_change', 'target_trend']
+            feature_cols = [col for col in X.columns if col not in exclude_cols]
+            self.feature_columns = feature_cols
+            X = X[feature_cols]
+            
+            # Remove rows with NaN values
+            X_clean = X.dropna()
+            y_clean = y.dropna()
+            # Get intersection of clean indices
+            clean_idx = X_clean.index.intersection(y_clean.index)
+            X = X.loc[clean_idx]
+            y = y.loc[clean_idx]
+            
+            # Ensure y is a Series
+            if isinstance(y, pd.DataFrame):
+                y = y.iloc[:, 0]  # Take first column if DataFrame
+            
+            print(f"✅ Prepared {len(X):,} samples with {len(feature_cols)} features for {self.target_type}")
+            return X, y
+        else:
+            raise ValueError("❌ Invalid dataset structure - need 'train' or 'X_train' key")
+        
+        # Old structure handling
         train_data = datasets['train'].copy()
         
         # Define feature columns (exclude target and non-numeric)
@@ -156,22 +203,24 @@ class LinearRegressionModel(BaseModel):
             test_metrics = self._evaluate_on_test(datasets['test'])
             train_metrics.update(test_metrics)
         
-        # Update model state
+        # Update model state with safe length check
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        
         self.is_trained = True
         self.training_history = {
             'timestamp': pd.Timestamp.now().isoformat(),
             'target_type': self.target_type,
-            'n_features': len(self.feature_columns),
+            'n_features': feature_count,
             'n_samples': len(X_train),
             'metrics': train_metrics
         }
         
-        # Update metadata
-        self.metadata.update({
-            'training_samples': len(X_train),
-            'feature_count': len(self.feature_columns),
-            'last_trained': pd.Timestamp.now().isoformat()
-        })
+        # Update metadata with safe length check
+        feature_count = len(self.feature_columns) if self.feature_columns else 0
+        
+        self.metadata['training_samples'] = str(len(X_train))
+        self.metadata['feature_count'] = str(feature_count)
+        self.metadata['last_trained'] = pd.Timestamp.now().isoformat()
         
         # Print results
         print(f"✅ Training completed!")
@@ -192,10 +241,14 @@ class LinearRegressionModel(BaseModel):
         else:
             y_test = test_data['target_price_change'].copy()
         
-        # Remove NaN values
-        valid_idx = ~(X_test.isnull().any(axis=1) | y_test.isnull())
-        X_test = X_test[valid_idx]
-        y_test = y_test[valid_idx]
+        # Remove NaN values using dropna
+        X_test_clean = X_test.dropna()
+        y_test_clean = y_test.dropna()
+        
+        # Get common valid indices
+        valid_idx = X_test_clean.index.intersection(y_test_clean.index)
+        X_test = X_test.loc[valid_idx]
+        y_test = y_test.loc[valid_idx]
         
         # Scale if needed
         if self.normalize_features and self.scaler:
@@ -205,6 +258,8 @@ class LinearRegressionModel(BaseModel):
             X_test_scaled = X_test
         
         # Predict
+        if isinstance(X_test_scaled, pd.Series):
+            X_test_scaled = X_test_scaled.to_frame().T
         y_pred_test = self.model.predict(X_test_scaled)
         
         # Calculate metrics
@@ -284,7 +339,7 @@ class LinearRegressionModel(BaseModel):
         
         return importance_df
     
-    def plot_predictions(self, X: pd.DataFrame, y: pd.Series, title: str = None) -> plt.Figure:
+    def plot_predictions(self, X: pd.DataFrame, y: pd.Series, title: Optional[str] = None) -> Figure:
         """
         📊 Plot predictions vs actual values
         

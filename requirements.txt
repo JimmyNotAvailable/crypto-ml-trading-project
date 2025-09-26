@@ -4,3 +4,12 @@ scikit-learn
 numpy
 pandas
 flask
+plotly
+schedule
+matplotlib
+seaborn
+discord.py
+python-dotenv
+joblib
+psutil
+# --- IGNORE ---

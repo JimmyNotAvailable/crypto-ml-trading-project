@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import TimeSeriesSplit
 import os
 import sys
+from typing import Optional
 
 # Import từ project modules
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -16,7 +17,7 @@ def project_root_path():
     current_file = os.path.abspath(__file__)
     return os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
 
-def load_features_data(symbols=None, top_n=None):
+def load_features_data(symbols: Optional[list] = None, top_n: Optional[int] = None) -> pd.DataFrame:
     """
     Load dữ liệu đã có features từ cache - tối ưu cho multiple coins
     
@@ -30,14 +31,8 @@ def load_features_data(symbols=None, top_n=None):
     if not os.path.exists(features_path):
         raise FileNotFoundError(f"❌ Không tìm thấy file features: {features_path}")
     
-    # Load with optimized dtypes for memory efficiency
-    dtype_map = {
-        'open': 'float32', 'high': 'float32', 'low': 'float32', 'close': 'float32',
-        'volume': 'float32', 'tradecount': 'int32',
-        'ma_10': 'float32', 'ma_50': 'float32', 'volatility': 'float32', 'returns': 'float32'
-    }
-    
-    df = pd.read_csv(features_path, dtype=dtype_map)
+    # Load data
+    df = pd.read_csv(features_path)
     df['date'] = pd.to_datetime(df['date'])
     
     print(f"🔄 Loaded raw features data: {df.shape[0]:,} rows, {df.shape[1]} columns")
@@ -313,7 +308,7 @@ if __name__ == "__main__":
         
         if use_top_n:
             print(f"📊 Preparing datasets for TOP {top_n} coins...")
-            df = load_features_data(top_n=top_n)
+            df = load_features_data()
             dataset_name = f'ml_datasets_top{top_n}'
         else:
             print(f"📊 Preparing datasets for specific coins: {specific_symbols}")

@@ -60,9 +60,9 @@ class SmartTrainingPipeline:
         }
     
     def train_with_best_algorithm(self, target_type: str, 
-                                  dataset_name: str = 'ml_datasets_top3',
-                                  min_confidence: str = 'medium',
-                                  force_algorithm: str = None) -> Dict[str, Any]:
+                                  dataset_name: Optional[str] = 'ml_datasets_top3',
+                                  min_confidence: Optional[str] = 'medium',
+                                  force_algorithm: Optional[str] = None) -> Dict[str, Any]:
         """
         🎯 Training với thuật toán tốt nhất được tự động chọn
         
@@ -81,7 +81,8 @@ class SmartTrainingPipeline:
         # Load data
         print("📊 Đang tải dữ liệu...")
         try:
-            datasets_raw = load_prepared_datasets(dataset_name)
+            actual_dataset_name = dataset_name or 'ml_datasets_top3'
+            datasets_raw = load_prepared_datasets(actual_dataset_name)
             print(f"✅ Tải dữ liệu thành công: {len(datasets_raw['X_train'])} mẫu training")
             
             # Convert format for algorithms (they expect 'train', 'test' keys with DataFrames)
@@ -107,8 +108,9 @@ class SmartTrainingPipeline:
             }
         else:
             print("🎯 Đang phân tích và chọn thuật toán tốt nhất...")
+            actual_min_confidence = min_confidence or 'medium'
             algorithm_choice = self.selector.select_best_algorithm_for_task(
-                target_type, min_confidence
+                target_type, actual_min_confidence
             )
         
         print(f"🏆 Thuật toán được chọn: {algorithm_choice['algorithm']}")
@@ -238,7 +240,7 @@ class SmartTrainingPipeline:
             'results': results
         }
     
-    def get_algorithm_recommendations(self, target_types: list = None) -> Dict[str, Any]:
+    def get_algorithm_recommendations(self, target_types: Optional[list] = None) -> Dict[str, Any]:
         """
         🎯 Lấy khuyến nghị thuật toán cho các targets
         

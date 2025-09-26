@@ -49,16 +49,20 @@ class BotGiaoDichTuDong:
         """Tải và huấn luyện các mô hình ML"""
         try:
             datasets = load_prepared_datasets('ml_datasets_top3')
+            datasets_compat = {
+                'train': datasets.get('train_df', pd.DataFrame()),
+                'test': datasets.get('test_df', pd.DataFrame())
+            }
             
             # Huấn luyện và lưu trữ các mô hình
             self.cac_mo_hinh['du_doan_gia'] = LinearRegressionModel(target_type='price')
-            self.cac_mo_hinh['du_doan_gia'].train(datasets)
+            self.cac_mo_hinh['du_doan_gia'].train(datasets_compat)
             
             self.cac_mo_hinh['phan_loai_xu_huong'] = KNNClassifier(n_neighbors=5)
-            self.cac_mo_hinh['phan_loai_xu_huong'].train(datasets)
+            self.cac_mo_hinh['phan_loai_xu_huong'].train(datasets_compat)
             
             self.cac_mo_hinh['phan_tich_thi_truong'] = KMeansClusteringModel(auto_tune=True)
-            self.cac_mo_hinh['phan_tich_thi_truong'].train(datasets)
+            self.cac_mo_hinh['phan_tich_thi_truong'].train(datasets_compat)
             
             print("✅ Các mô hình bot giao dịch đã được tải thành công")
             
@@ -86,10 +90,17 @@ class BotGiaoDichTuDong:
             cum_thi_truong = self.cac_mo_hinh['phan_tich_thi_truong'].predict(features_df)[0]
             
             # Tính điểm tin cậy (đơn giản hóa)
-            do_tin_cay = min(
-                self.cac_mo_hinh['du_doan_gia'].training_history['test_metrics']['r2'],
-                max(xac_suat_xu_huong)
-            )
+            metrics = {}
+            try:
+                metrics = self.cac_mo_hinh['du_doan_gia'].training_history.get('metrics', {})
+            except Exception:
+                metrics = {}
+            r2 = metrics.get('test_r2') or metrics.get('r2') or 0.0
+            try:
+                r2 = float(r2)
+            except Exception:
+                r2 = 0.0
+            do_tin_cay = min(max(0.0, r2), float(np.max(xac_suat_xu_huong) if len(xac_suat_xu_huong) else 0.0))
             
             return {
                 'gia_hien_tai': gia_hien_tai,
@@ -254,7 +265,10 @@ def vi_du_1_mo_phong_bot_giao_dich():
         
         # Tải dữ liệu test để mô phỏng
         datasets = load_prepared_datasets('ml_datasets_top3')
-        du_lieu_test = datasets['test'].head(20)  # Mô phỏng 20 phiên giao dịch
+        du_lieu_test = datasets.get('test_df', pd.DataFrame()).head(20)  # Mô phỏng 20 phiên giao dịch
+        if du_lieu_test is None or len(du_lieu_test) == 0:
+            print("⚠️ Không có dữ liệu test để mô phỏng.")
+            return None
         
         print(f"🚀 Bắt đầu mô phỏng giao dịch với ${bot.so_du_ban_dau:,.2f}")
         print(f"📊 Mô phỏng {len(du_lieu_test)} phiên giao dịch...")
@@ -276,34 +290,47 @@ def vi_du_1_mo_phong_bot_giao_dich():
             ket_qua_phan_tich = bot.phan_tich_thi_truong(du_lieu_thi_truong.to_dict())
             
             if ket_qua_phan_tich:
-                print(f"   🔮 Giá dự đoán: ${ket_qua_phan_tich['gia_du_doan']:.2f} ({ket_qua_phan_tich['thay_doi_gia_phan_tram']:+.2f}%)")
-                print(f"   📊 Độ tin cậy: {ket_qua_phan_tich['do_tin_cay']:.3f}")
-                
+                try:
+                    gia_dd = float(ket_qua_phan_tich.get('gia_du_doan', 0))
+                    thay_doi_pct = float(ket_qua_phan_tich.get('thay_doi_gia_phan_tram', 0))
+                    do_tin_cay = float(ket_qua_phan_tich.get('do_tin_cay', 0))
+                    print(f"   🔮 Giá dự đoán: ${gia_dd:.2f} ({thay_doi_pct:+.2f}%)")
+                    print(f"   📊 Độ tin cậy: {do_tin_cay:.3f}")
+                except Exception:
+                    pass
+
                 # Hiển thị xu hướng mạnh nhất
-                xu_huong_manh_nhat = max(ket_qua_phan_tich['du_doan_xu_huong'].keys(), 
-                                        key=lambda x: ket_qua_phan_tich['du_doan_xu_huong'][x])
-                do_manh = ket_qua_phan_tich['du_doan_xu_huong'][xu_huong_manh_nhat]
-                print(f"   📈 Xu hướng: {xu_huong_manh_nhat} ({do_manh:.3f})")
-                
+                du_doan_xh = ket_qua_phan_tich.get('du_doan_xu_huong') if isinstance(ket_qua_phan_tich, dict) else None
+                if isinstance(du_doan_xh, dict) and len(du_doan_xh) > 0:
+                    _du_doan_xh: Dict[str, float] = dict(du_doan_xh)
+                    xu_huong_manh_nhat = max(_du_doan_xh.keys(), key=lambda k: float(_du_doan_xh.get(k, 0)))
+                    do_manh = float(_du_doan_xh.get(xu_huong_manh_nhat, 0))
+                    print(f"   📈 Xu hướng: {xu_huong_manh_nhat} ({do_manh:.3f})")
+
                 # Tạo tín hiệu giao dịch
                 tin_hieu = bot.tao_tin_hieu_giao_dich(ket_qua_phan_tich)
-                print(f"   🎯 Tín hiệu: {tin_hieu['hanh_dong']} - {tin_hieu['ly_do']}")
-                
-                # Thực hiện giao dịch
-                if tin_hieu['hanh_dong'] != 'GIỮ':
-                    ket_qua = bot.thuc_hien_giao_dich(tin_hieu, du_lieu_thi_truong.to_dict())
-                    if ket_qua['trang_thai'] == 'thuc_hien':
-                        giao_dich = ket_qua['giao_dich']
-                        print(f"   ✅ {ket_qua['thong_bao']}")
-                        print(f"      🎯 Mục tiêu: ${giao_dich['gia_muc_tieu']:.2f}")
-                        print(f"      🛡️ Stop loss: ${giao_dich['stop_loss']:.2f}")
-                        print(f"      🎁 Take profit: ${giao_dich['take_profit']:.2f}")
-                        
-                        if 'lai_lo' in ket_qua:
-                            mau_sac = "💚" if ket_qua['lai_lo'] > 0 else "❤️"
-                            print(f"      {mau_sac} P&L: ${ket_qua['lai_lo']:+.2f}")
-                    else:
-                        print(f"   ❌ {ket_qua['thong_bao']}")
+                if isinstance(tin_hieu, dict):
+                    print(f"   🎯 Tín hiệu: {tin_hieu.get('hanh_dong')} - {tin_hieu.get('ly_do')}")
+
+                    # Thực hiện giao dịch
+                    if tin_hieu.get('hanh_dong') != 'GIỮ':
+                        ket_qua = bot.thuc_hien_giao_dich(tin_hieu, du_lieu_thi_truong.to_dict())
+                        if isinstance(ket_qua, dict) and ket_qua.get('trang_thai') == 'thuc_hien':
+                            giao_dich = ket_qua.get('giao_dich', {})
+                            print(f"   ✅ {ket_qua.get('thong_bao')}")
+                            if isinstance(giao_dich, dict):
+                                try:
+                                    print(f"      🎯 Mục tiêu: ${float(giao_dich.get('gia_muc_tieu', 0)):.2f}")
+                                    print(f"      🛡️ Stop loss: ${float(giao_dich.get('stop_loss', 0)):.2f}")
+                                    print(f"      🎁 Take profit: ${float(giao_dich.get('take_profit', 0)):.2f}")
+                                except Exception:
+                                    pass
+
+                            if 'lai_lo' in ket_qua and isinstance(ket_qua.get('lai_lo'), (int, float)):
+                                mau_sac = "💚" if float(ket_qua['lai_lo']) > 0 else "❤️"
+                                print(f"      {mau_sac} P&L: ${float(ket_qua['lai_lo']):+.2f}")
+                        elif isinstance(ket_qua, dict):
+                            print(f"   ❌ {ket_qua.get('thong_bao')}")
                 else:
                     print(f"   ⏸️ Giữ nguyên vị thế")
             else:
@@ -324,11 +351,12 @@ def vi_du_1_mo_phong_bot_giao_dich():
         print(f"📍 Vị thế đang mở: {hieu_suat['vi_the_mo']}")
         
         # Đánh giá kết quả
-        if hieu_suat['roi_phan_tram'] > 5:
+        roi_pct = float(hieu_suat.get('roi_phan_tram', 0)) if isinstance(hieu_suat, dict) else 0.0
+        if roi_pct > 5:
             print("\n🎉 BOT HOẠT ĐỘNG RẤT TỐT!")
             print("   ✅ Chiến lược ML hiệu quả")
             print("   ✅ Quản lý rủi ro tốt")
-        elif hieu_suat['roi_phan_tram'] > 0:
+        elif roi_pct > 0:
             print("\n👍 BOT HOẠT ĐỘNG KHẨN THỂ")
             print("   ✅ Có lãi nhưng cần tối ưu thêm")
             print("   ⚠️ Có thể điều chỉnh tham số")
@@ -474,7 +502,12 @@ def vi_du_2_theo_doi_hieu_suat_mo_hinh():
         # Tải mô hình và dữ liệu
         datasets = load_prepared_datasets('ml_datasets_top3')
         mo_hinh_gia = LinearRegressionModel(target_type='price')
-        mo_hinh_gia.train(datasets)
+        # Đảm bảo tương thích với interface train(datasets={'train': df, 'test': df})
+        datasets_compat = {
+            'train': datasets.get('train_df', pd.DataFrame()),
+            'test': datasets.get('test_df', pd.DataFrame())
+        }
+        mo_hinh_gia.train(datasets_compat)
         
         print("📊 Mô phỏng theo dõi dự đoán theo thời gian...")
         
@@ -485,8 +518,13 @@ def vi_du_2_theo_doi_hieu_suat_mo_hinh():
         print(f"   🔹 Đưa ra khuyến nghị hành động")
         
         # Mô phỏng dự đoán theo thời gian với drift dần dần
-        du_lieu_test = datasets['X_test'].head(100)
-        gia_thuc_te = datasets['y_test']['price'].head(100)
+        test_features = datasets.get('test_df', pd.DataFrame())
+        feature_cols = datasets.get('feature_cols', [])
+        if isinstance(test_features, pd.DataFrame) and feature_cols:
+            du_lieu_test = test_features[feature_cols].head(100)
+        else:
+            du_lieu_test = pd.DataFrame()
+        gia_thuc_te = datasets.get('y_test', {}).get('price', pd.Series(dtype=float)).head(100) if isinstance(datasets.get('y_test', {}), dict) else pd.Series(dtype=float)
         
         for i, (_, dac_trung) in enumerate(du_lieu_test.iterrows()):
             # Mô phỏng data drift bằng cách thêm nhiễu tăng dần
@@ -495,7 +533,7 @@ def vi_du_2_theo_doi_hieu_suat_mo_hinh():
             
             # Thực hiện dự đoán
             du_doan = mo_hinh_gia.predict(pd.DataFrame([dac_trung_drift]))[0]
-            thuc_te = gia_thuc_te.iloc[i]
+            thuc_te = float(gia_thuc_te.iloc[i]) if len(gia_thuc_te) > i else None
             
             # Ghi nhật ký dự đoán
             thoi_gian = datetime.now() - timedelta(days=100-i)  # Mô phỏng dữ liệu lịch sử
@@ -530,24 +568,32 @@ def vi_du_2_theo_doi_hieu_suat_mo_hinh():
         
         bao_cao = bo_theo_doi.tao_bao_cao_hieu_suat()
         
-        print(f"📊 Tổng dự đoán: {bao_cao['tong_du_doan']}")
-        print(f"🤖 Mô hình theo dõi: {bao_cao['so_mo_hinh_theo_doi']}")
-        
-        for ten_mo_hinh, hieu_suat in bao_cao['hieu_suat_mo_hinh'].items():
-            print(f"\n   📈 {ten_mo_hinh}:")
-            print(f"      📋 Tổng dự đoán: {hieu_suat['tong_du_doan']}")
-            print(f"      ✅ Đã xác minh: {hieu_suat['du_doan_da_xac_minh']}")
-            print(f"      📊 MAE: ${hieu_suat['mae']:.2f}")
-            print(f"      ⚡ Lỗi lớn nhất: ${hieu_suat['loi_lon_nhat']:.2f}")
-            print(f"      🎯 Độ chính xác (±5%): {hieu_suat['do_chinh_xac_trong_5_phan_tram']:.1%}")
-        
+        print(f"📊 Tổng dự đoán: {bao_cao.get('tong_du_doan', 0)}")
+        print(f"🤖 Mô hình theo dõi: {bao_cao.get('so_mo_hinh_theo_doi', 0)}")
+
+        hieu_suat_mo_hinh = bao_cao.get('hieu_suat_mo_hinh', {}) if isinstance(bao_cao, dict) else {}
+        if isinstance(hieu_suat_mo_hinh, dict):
+            for ten_mo_hinh, hieu_suat in hieu_suat_mo_hinh.items():
+                print(f"\n   📈 {ten_mo_hinh}:")
+                try:
+                    print(f"      📋 Tổng dự đoán: {hieu_suat.get('tong_du_doan', 0)}")
+                    print(f"      ✅ Đã xác minh: {hieu_suat.get('du_doan_da_xac_minh', 0)}")
+                    print(f"      📊 MAE: ${float(hieu_suat.get('mae', 0)):.2f}")
+                    print(f"      ⚡ Lỗi lớn nhất: ${float(hieu_suat.get('loi_lon_nhat', 0)):.2f}")
+                    print(f"      🎯 Độ chính xác (±5%): {float(hieu_suat.get('do_chinh_xac_trong_5_phan_tram', 0)):.1%}")
+                except Exception:
+                    pass
+
         # Kiểm tra drift cuối cùng
         drift_cuoi = bo_theo_doi.danh_gia_drift_mo_hinh('du_doan_gia', so_ngay_gan_day=30)
         print(f"\n🔍 PHÂN TÍCH DRIFT CUỐI CÙNG:")
-        print(f"   🎯 Trạng thái: {drift_cuoi['trang_thai']}")
-        if drift_cuoi['trang_thai'] != 'khong_du_du_lieu':
-            print(f"   📈 Thay đổi hiệu suất: {drift_cuoi['thay_doi_hieu_suat_phan_tram']:+.1f}%")
-            print(f"   💡 {drift_cuoi['khuyen_nghi']}")
+        print(f"   🎯 Trạng thái: {drift_cuoi.get('trang_thai')}")
+        if drift_cuoi.get('trang_thai') != 'khong_du_du_lieu':
+            try:
+                print(f"   📈 Thay đổi hiệu suất: {float(drift_cuoi.get('thay_doi_hieu_suat_phan_tram', 0)):+.1f}%")
+            except Exception:
+                pass
+            print(f"   💡 {drift_cuoi.get('khuyen_nghi')}")
         
         print(f"\n🎯 GIÁ TRỊ CỦA THEO DÕI HIỆU SUẤT:")
         print(f"   ✅ Phát hiện sớm suy giảm mô hình")

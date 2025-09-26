@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Crypto ML{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">🚀 Crypto ML Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" onclick="tao_du_doan_moi()">
+            <i class="fas fa-sync"></i> Dự đoán Mới
+        </button>
+    </div>
+</div>
+
+<!-- Cards tổng quan -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-crypto">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Dự đoán Mới nhất</h5>
+                        {% if du_doan_hien_tai %}
+                        <h3>${{ "%.2f"|format(du_doan_hien_tai.gia_du_doan) }}</h3>
+                        <small>
+                            {% if du_doan_hien_tai.thay_doi_phan_tram > 0 %}
+                            <span class="badge bg-success">+{{ "%.2f"|format(du_doan_hien_tai.thay_doi_phan_tram) }}%</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ "%.2f"|format(du_doan_hien_tai.thay_doi_phan_tram) }}%</span>
+                            {% endif %}
+                        </small>
+                        {% else %}
+                        <h3>--</h3>
+                        <small>Chưa có dữ liệu</small>
+                        {% endif %}
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card card-ml">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Độ Tin cậy</h5>
+                        {% if du_doan_hien_tai %}
+                        <h3>{{ "%.1f"|format(du_doan_hien_tai.do_tin_cay * 100) }}%</h3>
+                        <small>{{ du_doan_hien_tai.xu_huong }}</small>
+                        {% else %}
+                        <h3>--</h3>
+                        <small>Chưa có dữ liệu</small>
+                        {% endif %}
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-brain fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card card-trading">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Bot P&L</h5>
+                        {% if hieu_suat_bot %}
+                        <h3>
+                            {% if hieu_suat_bot.roi_phan_tram > 0 %}
+                            <span class="text-success">+{{ "%.2f"|format(hieu_suat_bot.roi_phan_tram) }}%</span>
+                            {% else %}
+                            <span class="text-danger">{{ "%.2f"|format(hieu_suat_bot.roi_phan_tram) }}%</span>
+                            {% endif %}
+                        </h3>
+                        <small>${{ "%.2f"|format(hieu_suat_bot.so_du_hien_tai) }}</small>
+                        {% else %}
+                        <h3>--</h3>
+                        <small>Bot chưa hoạt động</small>
+                        {% endif %}
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-robot fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Biểu đồ -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> Dự đoán Giá Bitcoin</h5>
+            </div>
+            <div class="card-body">
+                <div id="bieu_do_gia" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-thermometer-half"></i> Độ Tin cậy</h5>
+            </div>
+            <div class="card-body">
+                <div id="bieu_do_tin_cay" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- So sánh mô hình -->
+{% if so_sanh_mo_hinh %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-balance-scale"></i> So sánh Hiệu suất Mô hình</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Mô hình</th>
+                                <th>Loại</th>
+                                <th>R² Score</th>
+                                <th>MAE</th>
+                                <th>RMSE</th>
+                                <th>Thời gian Train (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ten, info in so_sanh_mo_hinh.items() %}
+                            <tr>
+                                <td><strong>{{ info.ten_hien_thi }}</strong></td>
+                                <td><span class="badge bg-info">{{ info.loai }}</span></td>
+                                <td>
+                                    {% if info.metrics.r2 %}
+                                    <span class="{% if info.metrics.r2 > 0.8 %}metric-positive{% elif info.metrics.r2 > 0.6 %}metric-neutral{% else %}metric-negative{% endif %}">
+                                        {{ "%.3f"|format(info.metrics.r2) }}
+                                    </span>
+                                    {% else %}--{% endif %}
+                                </td>
+                                <td>
+                                    {% if info.metrics.mae %}
+                                    {{ "%.2f"|format(info.metrics.mae) }}
+                                    {% else %}--{% endif %}
+                                </td>
+                                <td>
+                                    {% if info.metrics.rmse %}
+                                    {{ "%.2f"|format(info.metrics.rmse) }}
+                                    {% else %}--{% endif %}
+                                </td>
+                                <td>{{ "%.2f"|format(info.thoi_gian_train) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Thông tin mô hình và thao tác demo -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Thông tin Mô hình</h5>
+                <div>
+                    <a href="/model-info" class="btn btn-sm btn-outline-primary">Mở trang</a>
+                    <button class="btn btn-sm btn-primary" onclick="tai_thong_tin_mo_hinh()">Tải thông tin</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="model_info_content" class="small text-muted">Nhấn "Tải thông tin" để xem mô hình, độ chính xác và metadata.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0"><i class="fas fa-bolt"></i> Thao tác Demo Nhanh</h5></div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-4">
+                        <button class="btn btn-outline-secondary w-100" onclick="go_movers()">Movers 24h</button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-secondary w-100" onclick="go_price()">Giá BTC</button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-secondary w-100" onclick="go_chart()">Chart BTC</button>
+                    </div>
+                </div>
+                <div id="demo_actions_output" class="mt-3 small text-muted"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function format_percent(x) {
+    try { return (x*100).toFixed(1) + '%'; } catch { return String(x); }
+}
+
+function tao_du_doan_moi() {
+    fetch('/api/du-doan-moi')
+        .then(response => response.json())
+        .then(data => {
+            if (data.trang_thai === 'thanh_cong') {
+                location.reload();
+            } else {
+                alert('Lỗi tạo dự đoán: ' + data.thong_bao);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Lỗi kết nối API');
+        });
+}
+
+// Model info loader
+function tai_thong_tin_mo_hinh() {
+    const el = document.getElementById('model_info_content');
+    el.textContent = 'Đang tải...';
+    fetch('/api/model-info')
+        .then(r => r.json())
+        .then(d => {
+            if (d.trang_thai !== 'thanh_cong') { el.textContent = 'Không thể tải thông tin mô hình'; return; }
+            const info = d.thong_tin || {};
+            if (!info.available) { el.innerHTML = '<div class="alert alert-warning">Không tìm thấy mô hình production. Đang dùng chế độ demo.</div>'; return; }
+            let html = [];
+            html.push('<div class="alert alert-success py-2">Đã phát hiện gói mô hình production.</div>');
+            if (info.models && info.models.length) {
+                html.push('<p><b>Danh sách mô hình:</b> ' + info.models.join(', ') + '</p>');
+            }
+            const perf = info.performance || {};
+            if (Object.keys(perf).length) {
+                html.push('<h6>Hiệu suất</h6><ul class="mb-2">');
+                for (const k in perf) { html.push(`<li>${k}: ${perf[k]}</li>`); }
+                html.push('</ul>');
+            }
+            const meta = info.metadata || {};
+            if (Object.keys(meta).length) {
+                html.push('<h6>Metadata</h6><ul class="mb-2">');
+                for (const k in meta) { html.push(`<li>${k}: ${meta[k]}</li>`); }
+                html.push('</ul>');
+            }
+            html.push(`<p><b>Số cột features:</b> ${ (info.feature_cols||[]).length }</p>`);
+            el.innerHTML = html.join('
+');
+        })
+        .catch(() => { el.textContent = 'Lỗi khi tải thông tin mô hình'; });
+}
+
+// Demo actions
+function go_movers() {
+    const out = document.getElementById('demo_actions_output');
+    out.textContent = 'Đang lấy danh sách movers...';
+    fetch('/api/movers').then(r=>r.json()).then(d=>{
+        if (d.trang_thai !== 'thanh_cong') { out.textContent = 'Không lấy được movers'; return; }
+        const g = d.gainers || [], l = d.losers || [];
+        out.innerHTML = '<div><b>Top tăng:</b> ' + g.map(x=>`${x.symbol} (${x.change_pct}%)`).join(', ') + '</div>' +
+                        '<div><b>Top giảm:</b> ' + l.map(x=>`${x.symbol} (${x.change_pct}%)`).join(', ') + '</div>';
+    }).catch(()=> out.textContent = 'Lỗi lấy movers');
+}
+function go_price() {
+    const out = document.getElementById('demo_actions_output');
+    out.textContent = 'Đang lấy giá...';
+    fetch('/api/price?symbol=BTC').then(r=>r.json()).then(d=>{
+        out.innerHTML = `<div>BTC hiện tại: <b>$${d.price}</b> (cập nhật: ${d.time})</div>`;
+    }).catch(()=> out.textContent = 'Lỗi lấy giá');
+}
+function go_chart() {
+    const out = document.getElementById('demo_actions_output');
+    out.textContent = 'Đang lấy link chart...';
+    fetch('/api/chart?symbol=BTC').then(r=>r.json()).then(d=>{
+        out.innerHTML = `<div>Chart TradingView: <a href="${d.link}" target="_blank">Mở chart ${d.symbol}</a></div>`;
+    }).catch(()=> out.textContent = 'Lỗi lấy chart');
+}
+
+// Tải biểu đồ giá
+fetch('/api/bieu-do-gia')
+    .then(response => response.json())
+    .then(data => {
+        if (data.trang_thai === 'thanh_cong') {
+            const bieu_do = JSON.parse(data.bieu_do);
+            Plotly.newPlot('bieu_do_gia', bieu_do.data, bieu_do.layout);
+        }
+    });
+
+// Tải biểu đồ độ tin cậy
+fetch('/api/bieu-do-tin-cay')
+    .then(response => response.json())
+    .then(data => {
+        if (data.trang_thai === 'thanh_cong') {
+            const bieu_do = JSON.parse(data.bieu_do);
+            Plotly.newPlot('bieu_do_tin_cay', bieu_do.data, bieu_do.layout);
+        }
+    });
+
+// Tự động refresh mỗi 30 giây
+setInterval(() => {
+    fetch('/api/du-doan-moi');
+}, 30000);
+</script>
+{% endblock %}

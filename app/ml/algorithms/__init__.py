@@ -17,6 +17,7 @@ from .linear_regression import LinearRegressionModel
 from .knn_models import KNNClassifier, KNNRegressor
 from .clustering import KMeansClusteringModel
 from .random_forest import RandomForestModel
+from .logistic_regression import LogisticRegressionModel
 
 __all__ = [
     'BaseModel',
@@ -24,5 +25,6 @@ __all__ = [
     'KNNClassifier',
     'KNNRegressor',
     'KMeansClusteringModel',
-    'RandomForestModel'
+    'RandomForestModel',
+    'LogisticRegressionModel'
 ]
