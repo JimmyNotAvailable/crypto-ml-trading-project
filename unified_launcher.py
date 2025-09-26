@@ -68,9 +68,13 @@ class UnifiedLauncher:
             
             # Log bot output in separate thread
             def log_bot_output():
-                for line in iter(bot_proc.stdout.readline, ''):
-                    if line.strip():
-                        logger.info(f"[BOT] {line.strip()}")
+                if bot_proc.stdout:
+                    while True:
+                        line = bot_proc.stdout.readline()
+                        if not line:
+                            break
+                        if line.strip():
+                            logger.info(f"[BOT] {line.strip()}")
                         
             threading.Thread(target=log_bot_output, daemon=True).start()
             
@@ -110,9 +114,13 @@ class UnifiedLauncher:
             
             # Log web output in separate thread
             def log_web_output():
-                for line in iter(web_proc.stdout.readline, ''):
-                    if line.strip():
-                        logger.info(f"[WEB] {line.strip()}")
+                if web_proc.stdout:
+                    while True:
+                        line = web_proc.stdout.readline()
+                        if not line:
+                            break
+                        if line.strip():
+                            logger.info(f"[WEB] {line.strip()}")
                         
             threading.Thread(target=log_web_output, daemon=True).start()
             
